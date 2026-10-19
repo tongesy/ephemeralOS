@@ -37,7 +37,10 @@ if (new URLSearchParams(location.search).has('perf')) perf.toggle(true);
 let voice: VoiceSession | null = null;
 
 /** The screen: content fades in and out; the orb moves into whatever space is left. */
-const display = new DisplayManager((occupied) => orb.setOccupied(occupied));
+const display = new DisplayManager(
+  (occupied) => orb.setOccupied(occupied),
+  (scene) => orb.setScene(scene),
+);
 
 /** Tools the voice model calls that act on this page directly. */
 function localTool(name: string, args: string): string | null {

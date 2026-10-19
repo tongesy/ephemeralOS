@@ -28,6 +28,9 @@ export const DEMO_DISPLAYS: DisplayArgs[] = [
       ['Thu', 'Overcast', '13°', '9°', '20%'],
       ['Fri', 'Showers', '11°', '7°', '60%'],
     ],
+    row_icons: ['cloud-sun', 'cloud-rain', 'sun', 'cloud', 'cloud-rain'],
+    icon_column: 1,
+    scene: { kind: 'weather', sky: 'partly-cloudy', intensity: 0.5, day: true, wind: 0.3 },
   },
   // Same id: the panel stays and its content changes, as when asking about another place.
   {
@@ -44,6 +47,31 @@ export const DEMO_DISPLAYS: DisplayArgs[] = [
       ['Sat', 'Mostly clear', '13°', '5°', '10%'],
       ['Sun', 'Light rain', '11°', '6°', '50%'],
     ],
+    scene: { kind: 'weather', sky: 'rain', intensity: 0.8, day: false, wind: 0.4 },
+  },
+  {
+    id: 'weather',
+    component: 'table',
+    title: 'Tromsø · next three days',
+    columns: ['Day', 'Sky', 'High', 'Low', 'Snow'],
+    rows: [
+      ['Mon', 'Snow', '-2°', '-7°', '80%'],
+      ['Tue', 'Heavy snow', '-4°', '-9°', '95%'],
+      ['Wed', 'Overcast', '-3°', '-8°', '30%'],
+    ],
+    scene: { kind: 'weather', sky: 'snow', intensity: 0.7, day: true, wind: 0.2 },
+  },
+  {
+    id: 'weather',
+    component: 'table',
+    title: 'Brisbane · tonight',
+    columns: ['Time', 'Sky', 'Temp', 'Rain'],
+    rows: [
+      ['9 pm', 'Thunderstorm', '24°', '90%'],
+      ['10 pm', 'Thunderstorm', '23°', '85%'],
+      ['11 pm', 'Showers', '22°', '60%'],
+    ],
+    scene: { kind: 'weather', sky: 'thunder', intensity: 0.9, day: false, wind: 0.6 },
   },
   {
     component: 'chart',

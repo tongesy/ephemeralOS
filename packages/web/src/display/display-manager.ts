@@ -1,4 +1,4 @@
-import { ScreenArgs, parseDisplay, type ScreenAction } from '@ephemeralos/shared';
+import { ScreenArgs, parseDisplay, type Scene, type ScreenAction } from '@ephemeralos/shared';
 import type { Rect } from '../orb/placement.ts';
 import { DisplayStack, type DisplayEntry } from './display-stack.ts';
 import { conceal, resize, reveal } from './motion.ts';
@@ -35,7 +35,11 @@ export class DisplayManager {
   private generation = 0;
   private sessionEnd: ReturnType<typeof setTimeout> | undefined;
 
-  constructor(private readonly onLayout: (occupied: Rect[]) => void) {
+  constructor(
+    private readonly onLayout: (occupied: Rect[]) => void,
+    /** The world behind what is shown (the weather), or null for the plain page. */
+    private readonly onScene: (scene: Scene | null) => void = () => {},
+  ) {
     window.addEventListener('resize', () => this.reportLayout());
   }
 
@@ -155,6 +159,7 @@ export class DisplayManager {
     next.dataset.key = entry.key;
     this.enlarged = false;
     this.restartTimer(entry.ttlMs);
+    this.onScene(entry.request.scene ?? null);
     const previous = this.el;
     if (inPlace && previous?.dataset.key === entry.key) {
       void this.morph(previous, next, generation);
@@ -191,6 +196,7 @@ export class DisplayManager {
     this.fadeOut(this.el);
     this.el = null;
     this.enlarged = false;
+    this.onScene(null);
     this.reportLayout();
   }
 

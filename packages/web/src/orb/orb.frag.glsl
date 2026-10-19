@@ -34,6 +34,11 @@ uniform float uBreath;
 uniform float uPulse;
 uniform float uAura;
 uniform float uOpacity;     // how solid the plasma is; at rest the page shows through
+
+// The weather behind everything, when a weather surface is shown (see scene/).
+uniform sampler2D uScene;   // linear light, half resolution
+uniform float uSceneMix;    // 0: paper, 1: the scene
+uniform float uDrops;       // raindrops on the glass, 0..1
 uniform float uSwirlPhase;  // integrated on the CPU so speed changes never jump; wraps at 2π
 uniform float uSwirl;       // current swirl speed: how much the centre leads the rim
 uniform float uFlowPhase;
@@ -102,6 +107,33 @@ float spectrumOut(float u) {
   return mix(uSpectrumOut[i], uSpectrumOut[min(i + 1, 31)], smoothstep(0.0, 1.0, fract(x)));
 }
 
+float hash21(vec2 p) {
+  p = fract(p * vec2(123.34, 456.21));
+  p += dot(p, p + 45.32);
+  return fract(p.x * p.y);
+}
+
+// Raindrops on the glass in front of the page, one grid of cells per size. Each cell may
+// hold a drop that beads, swells and fades, and some slide down their cell. Returns the
+// refraction offset (xy) and how much of a drop is here (z).
+vec3 dropLayer(vec2 g, float t, float density) {
+  vec2 cell = floor(g);
+  vec2 f = fract(g) - 0.5;
+  float h = hash21(cell);
+  if (h > density) return vec3(0.0);
+  float life = fract(t * (0.04 + 0.05 * hash21(cell + 2.0)) + h * 9.0);
+  float size = mix(0.12, 0.22, hash21(cell + 5.0)) * smoothstep(0.0, 0.15, life) * (1.0 - smoothstep(0.75, 1.0, life));
+  vec2 at = (vec2(hash21(cell + 1.0), hash21(cell + 4.0)) - 0.5) * 0.45;
+  // A third of the drops run down their cell once they are heavy enough.
+  if (hash21(cell + 8.0) < 0.33) at.y += 0.25 - smoothstep(0.35, 0.95, life) * 0.55;
+  vec2 v = (f - at) / max(size, 1e-3);
+  v.y *= 0.85 + 0.15 * sign(v.y); // a little heavier at the bottom
+  float d2 = dot(v, v);
+  if (d2 > 1.0) return vec3(0.0);
+  float lens = sqrt(1.0 - d2);
+  return vec3(-v * (1.0 - lens) * size * 0.9, smoothstep(1.0, 0.75, d2));
+}
+
 // Interleaved gradient noise; dithers away banding in the soft gradients.
 float dither(vec2 frag) {
   return fract(52.9829189 * fract(dot(frag, vec2(0.06711056, 0.00583715))));
@@ -147,7 +179,32 @@ void main() {
   vec3 auraColor = mix(uColorA, uColorB, 0.5);
   float outside = max(r - 1.0, 0.0);
   float aura = uAura * (0.55 * exp(-outside * 5.0) + 0.25 * exp(-outside * 1.6));
-  vec3 page = mix(uBackground, auraColor, clamp(aura, 0.0, 1.0));
+  vec3 ground = uBackground;
+  if (uSceneMix > 0.0) {
+    vec2 sceneUv = vUv;
+    float dropLight = 0.0;
+    if (uDrops > 0.0) {
+      vec2 g = frag / uResolution.y;
+      vec3 big = dropLayer(g * 7.0, uTime, uDrops * 0.45);
+      vec3 small = dropLayer(g * 16.0 + 3.7, uTime * 1.3, uDrops * 0.6);
+      vec3 drop = big.z > 0.0 ? big : small;
+      // Each drop is a tiny lens: it shows the sky behind it, flipped and sharper-edged.
+      sceneUv += drop.xy * vec2(uResolution.y / uResolution.x, 1.0) * 0.35 * drop.z;
+      dropLight = drop.z;
+    }
+    vec3 scene = texture2D(uScene, sceneUv).rgb;
+    if (dropLight > 0.0) {
+      // Water: a touch brighter than what it shows, with a glint on the upper left and a
+      // thin shadow along the lower edge, the way a bead of rain sits on a window.
+      vec2 n = normalize(sceneUv - vUv + 1e-5);
+      float glint = pow(max(dot(-n, normalize(vec2(-0.6, 0.8))), 0.0), 6.0);
+      float shadow = pow(max(dot(-n, vec2(0.0, -1.0)), 0.0), 3.0);
+      scene = scene * (1.06 - 0.15 * shadow * dropLight) + vec3(0.3 * glint * dropLight);
+      scene = mix(texture2D(uScene, vUv).rgb, scene, dropLight);
+    }
+    ground = mix(uBackground, scene, uSceneMix);
+  }
+  vec3 page = mix(ground, auraColor, clamp(aura, 0.0, 1.0));
 
   vec3 color = page;
 

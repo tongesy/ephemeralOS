@@ -90,3 +90,17 @@ Speeds are integrated over time on the CPU, so changing state never makes the sw
 
 M1 first shipped a glass sphere with an internal light on black, with a bloom pass. It was
 replaced by the plasma on white before merge.
+
+## Weather scenes
+
+While a weather surface is on screen, the page becomes the weather outside right now, the way
+a window would show it: a sky that follows the time of day (stars and the moon at night),
+clouds drifting with the wind, haze for fog, three depths of rain or snow, lightning in a
+storm, and raindrops beading and running down the glass in front of it all. Glass cards sit
+on top and frost what is behind them. When the surface goes, the page fades back to paper.
+
+The sky's colours are `skyPalette` in [`theme/palette.ts`](../packages/web/src/theme/palette.ts);
+every other knob (cloud cover, haze, rain, snow, drops, storm) is in the look table in
+[`scene/scene-look.ts`](../packages/web/src/scene/scene-look.ts), set from the weather code,
+how heavy it is, day or night, and the wind. Changes between weathers ease over about a
+second. With `prefers-reduced-motion`, everything moves at 30% and lightning is softened.

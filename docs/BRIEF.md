@@ -44,6 +44,9 @@
 >   `~/.ephemeralos/cache`), so the page loads nothing from third parties; site icons need
 >   no key, and an optional logo.dev key gives sharper logos. A card about a person, place or
   thing shows the lead photo of its Wikipedia article (`/photos/<title>`), the same way.
+> - Weather is a scene, not just a table: while a weather surface is shown, the page becomes
+>   the weather right now (sky by day or night, clouds, haze, rain, snow, lightning, and
+>   raindrops on the glass), then fades back to paper. A surface carries it as `scene`.
 > - A gateway tool that is still running keeps the session open and the orb thinking, so
 >   a slow answer is always spoken before the screen fades.
 >

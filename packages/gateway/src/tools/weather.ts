@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { toolParameters, type DisplayArgs, type IconName } from '@ephemeralos/shared';
+import {
+  toolParameters,
+  type DisplayArgs,
+  type IconName,
+  type Scene,
+  type Sky,
+} from '@ephemeralos/shared';
 import { loadHome } from '../home.ts';
 import type { GatewayTool } from './registry.ts';
 
@@ -54,6 +60,35 @@ const SKY: Record<number, string> = {
   99: 'Thunderstorms, hail',
 };
 
+/** WMO code → the scene's sky and how heavy it is. */
+const SKY_SCENES: [codes: number[], sky: Sky, intensity: number][] = [
+  [[0], 'clear', 0],
+  [[1], 'partly-cloudy', 0.25],
+  [[2], 'partly-cloudy', 0.55],
+  [[3], 'cloudy', 0.8],
+  [[45, 48], 'fog', 0.7],
+  [[51, 53, 55, 56, 57], 'rain', 0.2],
+  [[61, 66, 80], 'rain', 0.45],
+  [[63, 81], 'rain', 0.7],
+  [[65, 67, 82], 'rain', 0.95],
+  [[71, 77, 85], 'snow', 0.35],
+  [[73], 'snow', 0.6],
+  [[75, 86], 'snow', 0.9],
+  [[95], 'thunder', 0.7],
+  [[96, 99], 'thunder', 0.95],
+];
+
+/** The weather right now as a scene for the page; windKmh of 60 or more is a gale. */
+export function weatherScene(code: number, isDay: boolean, windKmh = 0): Scene {
+  const [, sky, intensity] = SKY_SCENES.find(([codes]) => codes.includes(code)) ?? [
+    [],
+    'cloudy',
+    0.5,
+  ];
+  const wind = Math.round(Math.min(Math.max(windKmh / 60, 0), 1) * 100) / 100;
+  return { kind: 'weather', sky, intensity, day: isDay, wind };
+}
+
 /** The bundled icon for a WMO weather code. */
 export function skyIcon(code: number): IconName {
   if (code === 0) return 'sun';
@@ -84,7 +119,14 @@ const Geocode = z.object({
 });
 
 const Forecast = z.object({
-  current: z.object({ temperature_2m: z.number(), weather_code: z.number() }).optional(),
+  current: z
+    .object({
+      temperature_2m: z.number(),
+      weather_code: z.number(),
+      is_day: z.number().optional(),
+      wind_speed_10m: z.number().optional(),
+    })
+    .optional(),
   daily: z.object({
     time: z.array(z.string()),
     weather_code: z.array(z.number()),
@@ -178,7 +220,8 @@ export function createWeatherTool(options: { homeDir: string; fetch?: typeof fet
       url.search = new URLSearchParams({
         latitude: String(place.latitude),
         longitude: String(place.longitude),
-        current: 'temperature_2m,weather_code',
+        current: 'temperature_2m,weather_code,is_day,wind_speed_10m',
+        wind_speed_unit: 'kmh',
         daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max',
         timezone: 'auto',
         forecast_days: String(days),
@@ -213,6 +256,13 @@ export function createWeatherTool(options: { homeDir: string; fetch?: typeof fet
           ]),
           row_icons: forecastDays.map((f) => f.icon),
           icon_column: 1,
+          ...(forecast.current && {
+            scene: weatherScene(
+              forecast.current.weather_code,
+              forecast.current.is_day !== 0,
+              forecast.current.wind_speed_10m,
+            ),
+          }),
         };
         context.display(table);
       }
