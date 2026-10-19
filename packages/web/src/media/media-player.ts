@@ -6,7 +6,7 @@ import {
   YOUTUBE_EMBED_ORIGIN,
   type MediaItem,
 } from '@ephemeralos/shared';
-import { conceal, reveal } from '../display/motion.ts';
+import { reducedMotion, reveal } from '../display/motion.ts';
 import type { Rect } from '../orb/placement.ts';
 import {
   STAGE_MS,
@@ -26,6 +26,17 @@ import {
 /** Something left paused this long is put away. */
 const IDLE_MS = 10 * 60_000;
 const SKIP_SECONDS = 30;
+/** Something new waits for the voice to finish saying what it is, but never longer than this. */
+const HOLD_MS = 12_000;
+/** After the voice stops, a breath before the sound comes in. */
+const AFTER_VOICE_MS = 450;
+/** Collapsing into the corner (and back): words out, glide, words in. */
+const FADE_MS = 160;
+const MOVE_MS = 720;
+const SETTLE_MS = 420;
+const EASE_IN = 'cubic-bezier(0.4, 0, 1, 1)';
+/** Quick to leave, long to settle, like something set down by hand. */
+const GLIDE = 'cubic-bezier(0.32, 0.72, 0, 1)';
 
 export interface MediaPlayerHost {
   context: AudioContext;
@@ -54,6 +65,11 @@ function element<K extends keyof HTMLElementTagNameMap>(
  */
 export class MediaPlayer {
   private item: MediaItem | null = null;
+  /** Starts what was just put up; held while the voice is still talking about it. */
+  private pending: (() => void) | null = null;
+  private heldPaused = false;
+  private holdTimer: ReturnType<typeof setTimeout> | undefined;
+  private speaking = false;
   private el: HTMLElement | null = null;
   private audio: HTMLAudioElement | null = null;
   private source: MediaElementAudioSourceNode | null = null;
@@ -94,6 +110,7 @@ export class MediaPlayer {
     this.applyVolume(true);
     document.body.append(el);
     reveal(el, 140);
+    this.holdTimer = setTimeout(() => this.release(), HOLD_MS);
     requestAnimationFrame(() => {
       if (generation !== this.generation) return;
       el.toggleAttribute('data-shown', true);
@@ -104,9 +121,31 @@ export class MediaPlayer {
   /** A conversation opened or closed: play quietly underneath it, and come forward. */
   setConversing(on: boolean): void {
     this.conversing = on;
+    if (!on) this.release();
     if (!on) this.stagedAt = performance.now();
     this.applyVolume(false);
     this.relayout();
+  }
+
+  /**
+   * The voice's state. What was just put up starts once the voice has finished saying what
+   * it is, so the two never talk over each other.
+   */
+  setVoiceState(state: string): void {
+    const was = this.speaking;
+    this.speaking = state === 'speaking';
+    if (!this.pending || was === this.speaking) return;
+    clearTimeout(this.holdTimer);
+    this.holdTimer = setTimeout(() => this.release(), this.speaking ? HOLD_MS : AFTER_VOICE_MS);
+  }
+
+  /** Start what is waiting, unless it was paused before it began. */
+  private release(): void {
+    clearTimeout(this.holdTimer);
+    if (this.heldPaused) return;
+    const start = this.pending;
+    this.pending = null;
+    start?.();
   }
 
   /** Other content is (or is no longer) on screen; it takes the stage. */
@@ -219,7 +258,8 @@ export class MediaPlayer {
     this.source.connect(this.gain);
     this.host.measure(this.source);
     this.audio = audio;
-    audio.play().catch((error: unknown) => console.warn('[media] playback blocked:', error));
+    this.pending = () =>
+      void audio.play().catch((error: unknown) => console.warn('[media] playback blocked:', error));
     return el;
   }
 
@@ -241,7 +281,10 @@ export class MediaPlayer {
     // page sends none.
     frame.referrerPolicy = 'strict-origin-when-cross-origin';
     frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-presentation');
-    frame.src = embedUrl(item.youtube, location.origin);
+    // The poster waits on its own until the voice is done; then the player loads and starts.
+    this.pending = () => {
+      frame.src = embedUrl(item.youtube, location.origin);
+    };
     frame.addEventListener('load', () => {
       // Ask the player to report its state and time.
       frame.contentWindow?.postMessage(
@@ -281,13 +324,17 @@ export class MediaPlayer {
   }
 
   private pause(): void {
-    if (this.audio) this.audio.pause();
+    if (this.pending) this.heldPaused = true;
+    else if (this.audio) this.audio.pause();
     else this.command('pauseVideo');
     this.markPaused(true);
   }
 
   private resume(): void {
-    if (this.audio) {
+    if (this.pending) {
+      this.heldPaused = false;
+      this.release();
+    } else if (this.audio) {
       void this.audio
         .play()
         .catch((error: unknown) => console.warn('[media] playback blocked:', error));
@@ -335,6 +382,9 @@ export class MediaPlayer {
     if (!this.item) return;
     this.generation++;
     this.item = null;
+    this.pending = null;
+    this.heldPaused = false;
+    clearTimeout(this.holdTimer);
     clearTimeout(this.dockTimer);
     clearTimeout(this.idleTimer);
     if (this.audio) {
@@ -390,15 +440,107 @@ export class MediaPlayer {
       setTimeout(() => this.report(), 950);
       return;
     }
-    const generation = this.generation;
-    void conceal(el).then(() => {
-      if (generation !== this.generation) return;
-      // The same content comes back, so let go of the fade that hid it.
-      for (const animation of el.getAnimations({ subtree: true })) animation.cancel();
+    void this.collapse(el, dock, this.generation);
+  }
+
+  /**
+   * A podcast moving between the stage and the corner, as one piece: its words breathe
+   * out, the glass glides and shrinks (or grows) to its new place while the artwork flies
+   * there on its own, then the words settle back in.
+   */
+  private async collapse(el: HTMLElement, dock: boolean, generation: number): Promise<void> {
+    for (const animation of el.getAnimations({ subtree: true })) animation.cancel();
+    if (reducedMotion()) {
       el.classList.toggle('is-docked', dock);
-      reveal(el, 60);
       this.report();
+      return;
+    }
+    const words = [...el.children].filter((c) => !c.matches('.media__art'));
+    await Promise.allSettled(
+      words.map(
+        (part) =>
+          part.animate([{ opacity: 1 }, { opacity: 0, filter: 'blur(3px)' }], {
+            duration: FADE_MS,
+            easing: EASE_IN,
+            fill: 'forwards',
+          }).finished,
+      ),
+    );
+    if (generation !== this.generation) return;
+
+    const art = el.querySelector<HTMLImageElement>('.media__art[data-loaded]');
+    const from = el.getBoundingClientRect();
+    const fromArt = art?.getBoundingClientRect();
+    const fromPad = getComputedStyle(el).padding;
+    el.classList.toggle('is-docked', dock);
+    const to = el.getBoundingClientRect();
+    const toArt = art?.getBoundingClientRect();
+    const toPad = getComputedStyle(el).padding;
+    this.report();
+
+    const box = (r: DOMRect, padding: string) => ({
+      left: `${r.left}px`,
+      top: `${r.top}px`,
+      width: `${r.width}px`,
+      height: `${r.height}px`,
+      padding,
+      translate: 'none',
+      bottom: 'auto',
     });
+    const moves = [
+      el.animate([box(from, fromPad), box(to, toPad)], { duration: MOVE_MS, easing: GLIDE }),
+    ];
+    // The artwork flies as a copy above the glass, so the panel's layout can't pull it about.
+    let ghost: HTMLImageElement | null = null;
+    if (art && fromArt && toArt) {
+      ghost = art.cloneNode() as HTMLImageElement;
+      ghost.className = 'media__art media__ghost';
+      ghost.setAttribute('data-loaded', '');
+      Object.assign(ghost.style, {
+        left: `${toArt.left}px`,
+        top: `${toArt.top}px`,
+        width: `${toArt.width}px`,
+        height: `${toArt.height}px`,
+        borderRadius: getComputedStyle(art).borderRadius,
+      });
+      document.body.append(ghost);
+      art.style.visibility = 'hidden';
+      const dx = fromArt.left - toArt.left;
+      const dy = fromArt.top - toArt.top;
+      const scale = fromArt.width / toArt.width;
+      moves.push(
+        ghost.animate(
+          [
+            {
+              transform: `translate(${dx}px, ${dy}px) scale(${scale})`,
+              borderRadius: getComputedStyle(art).borderRadius,
+            },
+            { transform: 'none' },
+          ],
+          { duration: MOVE_MS, easing: GLIDE },
+        ),
+      );
+    }
+    await Promise.allSettled(moves.map((m) => m.finished));
+    ghost?.remove();
+    if (art) art.style.visibility = '';
+    if (generation !== this.generation) return;
+    for (const animation of el.getAnimations({ subtree: true })) animation.cancel();
+    words.forEach((part, i) =>
+      part.animate(
+        [
+          { opacity: 0, transform: 'translateY(4px)' },
+          { opacity: 1, transform: 'none' },
+        ],
+        { duration: SETTLE_MS, delay: i * 40, easing: GLIDE, fill: 'backwards' },
+      ),
+    );
+    this.report();
+  }
+
+  /** Whether a podcast or video is up on stage rather than tucked in the corner. */
+  get onStage(): boolean {
+    return this.item !== null && this.el !== null && !this.isDocked;
   }
 
   private report(): void {
