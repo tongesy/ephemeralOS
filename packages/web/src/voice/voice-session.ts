@@ -58,6 +58,8 @@ export class VoiceSession {
   private link: RealtimeLink | null = null;
   private speaking = false;
   private closing = false;
+  /** Gateway tool calls still running. The session waits for them before it can idle out. */
+  private pendingTools = 0;
   private silenceTimer: unknown = null;
   private goodbyeTimer: unknown = null;
   private readonly setTimer: (fn: () => void, ms: number) => unknown;
@@ -79,6 +81,7 @@ export class VoiceSession {
     this.phase = 'connecting';
     this.closing = false;
     this.speaking = false;
+    this.pendingTools = 0;
     this.deps.setState('thinking');
     try {
       const link = await this.deps.connect({
@@ -177,6 +180,12 @@ export class VoiceSession {
           this.end();
           return;
         }
+        // "Let me check" has finished but the tool hasn't: keep thinking, and don't let
+        // the silence timer end the conversation before the answer is spoken.
+        if (this.pendingTools > 0) {
+          this.deps.setState('thinking');
+          break;
+        }
         this.deps.setState('listening');
         this.armSilence();
         break;
@@ -213,10 +222,20 @@ export class VoiceSession {
       return;
     }
     this.deps.setState('thinking');
+    this.disarmSilence();
+    this.pendingTools++;
     console.info(`[voice] tool ${call.name} ${call.arguments}`);
-    const output = await this.deps.callTool(call.call_id, call.name, call.arguments);
+    let output: string;
+    try {
+      output = await this.deps.callTool(call.call_id, call.name, call.arguments);
+    } finally {
+      this.pendingTools--;
+    }
     console.info(`[voice] tool ${call.name} → ${output.slice(0, 300)}`);
+    if (this.phase !== 'open') return;
     this.reply(call.call_id, output, true);
+    // The reply should start speaking at once; if it never does, idle out as usual.
+    if (this.pendingTools === 0 && !this.speaking) this.armSilence();
   }
 
   private reply(callId: string, output: string, respond: boolean): void {

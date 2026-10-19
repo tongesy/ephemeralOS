@@ -3,9 +3,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { parseDisplay } from '@ephemeralos/shared';
-import { createSearchTool, splitAnswer } from '../src/tools/search.ts';
+import { createSearchTool, parseAnswer, rankedItems } from '../src/tools/search.ts';
 
-const ANSWER = `SAY: The big story is the Brisbane River flood warning, which has been lifted.
+const ANSWER = `TITLE: Brisbane news
+SAY: The big story is the Brisbane River flood warning, which has been lifted.
 SHOW:
 - **Flood warning lifted** for the Brisbane River ([abc.net.au](https://abc.net.au/x))
 - Cross River Rail opens in March https://example.com/rail
@@ -70,9 +71,9 @@ describe('search tool', () => {
     expect(parseDisplay(shown[0]).ok).toBe(true);
     expect(shown[0]).toMatchObject({
       component: 'card',
-      title: "What's in the news today",
+      title: 'Brisbane news',
       source: 'Sources: abc.net.au',
-      body: '- **Flood warning lifted** for the Brisbane River (abc.net.au)\n- Cross River Rail opens in March',
+      body: '- **Flood warning lifted** for the Brisbane River\n- Cross River Rail opens in March',
     });
   });
 
@@ -144,12 +145,29 @@ describe('search tool', () => {
   });
 });
 
-describe('splitAnswer', () => {
+describe('parseAnswer', () => {
   it('falls back to speaking the whole reply when the shape is missing', () => {
-    expect(splitAnswer('Just one line.')).toEqual({ spoken: 'Just one line.', shown: '' });
+    expect(parseAnswer('Just one line.')).toEqual({ spoken: 'Just one line.', shown: '' });
   });
 
-  it('accepts the parts in either order', () => {
-    expect(splitAnswer('SHOW:\n- a\nSAY: b')).toEqual({ spoken: 'b', shown: '- a' });
+  it('reads the parts in any order and drops inline citations', () => {
+    expect(parseAnswer('SHOW:\n- a (bbc.co.uk, abc.net.au)\nSAY: b\nTITLE: **News.**')).toEqual({
+      title: 'News',
+      spoken: 'b',
+      shown: '- a',
+    });
+  });
+});
+
+describe('rankedItems', () => {
+  it('turns a ranking into numbered list items', () => {
+    expect(rankedItems('- 1. Manchester City — 21 points\n- **2. Arsenal** — 18 points')).toEqual([
+      { label: 'Manchester City', detail: '21 points' },
+      { label: 'Arsenal', detail: '18 points' },
+    ]);
+  });
+
+  it('leaves ordinary bullets alone', () => {
+    expect(rankedItems('- Flood warning lifted\n- Rail opens in March')).toBeNull();
   });
 });

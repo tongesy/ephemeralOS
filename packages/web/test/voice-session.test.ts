@@ -104,6 +104,35 @@ describe('VoiceSession', () => {
     expect(h.sent[1]).toEqual({ type: 'response.create' });
   });
 
+  it('waits for a slow tool and speaks its answer instead of idling out', async () => {
+    const h = harness();
+    let finish!: (output: string) => void;
+    h.deps.callTool.mockImplementationOnce(() => new Promise<string>((done) => (finish = done)));
+    await h.session.start();
+    // "Let me check", then the search call, then the spoken part finishes.
+    h.emit('output_audio_buffer.started');
+    h.emit('response.done', {
+      response: {
+        output: [{ type: 'function_call', name: 'search', call_id: 'c1', arguments: '{}' }],
+      },
+    });
+    h.emit('output_audio_buffer.stopped');
+    expect(h.last()).toBe('thinking');
+
+    vi.advanceTimersByTime(30_000);
+    expect(h.deps.ended).not.toHaveBeenCalled();
+
+    finish('{"answer":"news"}');
+    await vi.waitFor(() => expect(h.sent).toHaveLength(2));
+    expect(h.sent[1]).toEqual({ type: 'response.create' });
+
+    h.emit('output_audio_buffer.started');
+    h.emit('output_audio_buffer.stopped');
+    expect(h.last()).toBe('listening');
+    vi.advanceTimersByTime(10_000);
+    expect(h.deps.ended).toHaveBeenCalled();
+  });
+
   it('shows the error state and apologises out loud when voice is unreachable', async () => {
     const h = harness({ connectFails: true });
     await h.session.start();
