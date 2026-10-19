@@ -33,8 +33,10 @@ export interface OrbLook {
 }
 
 /*
- * Asleep and awake should never be confused: at rest the orb is small, faint and nearly
- * still; once the microphone is open it swells, brightens and ripples with every sound.
+ * Each state reads at a glance, by size first: asleep, the orb is small, faint and nearly
+ * still; listening, it is awake and cool, rippling quietly with your voice; thinking, it
+ * draws in and three small moons circle it; speaking, it is at its largest and warmest,
+ * moving with every syllable of its own voice.
  */
 export const LOOKS: Record<OrbState, OrbLook> = {
   zen: {
@@ -52,41 +54,41 @@ export const LOOKS: Record<OrbState, OrbLook> = {
   },
   listening: {
     colors: [palette.azure, palette.glacier, palette.moss],
-    intensity: 1,
+    intensity: 0.85,
     warp: 1,
     swirl: 0.14,
     flow: 0.26,
-    ripple: 1.4,
+    ripple: 0.9,
     breath: 0.006,
     pulse: 0,
-    aura: 0.95,
-    size: 1.12,
+    aura: 0.6,
+    size: 0.95,
     opacity: 1,
   },
   thinking: {
     colors: [palette.heather, palette.lilac, palette.fjord],
     intensity: 0.65,
     warp: 1.25,
-    swirl: 0.75,
+    swirl: 0.5,
     flow: 0.3,
     ripple: 0.08,
     breath: 0.008,
     pulse: 0,
     aura: 0.5,
-    size: 0.92,
+    size: 0.85,
     opacity: 0.9,
   },
   speaking: {
     colors: [palette.coral, palette.sand, palette.rose],
-    intensity: 0.9,
+    intensity: 1,
     warp: 1,
     swirl: 0.2,
     flow: 0.3,
     ripple: 0.15,
     breath: 0.004,
-    pulse: 1.25,
-    aura: 0.85,
-    size: 1.15,
+    pulse: 1.8,
+    aura: 1,
+    size: 1.35,
     opacity: 1,
   },
   error: {

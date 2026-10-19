@@ -209,6 +209,34 @@ void main() {
   float alpha = bodyAlpha + auraAlpha * (1.0 - bodyAlpha);
   vec3 color = linearToSrgb(clamp(plasma, 0.0, 1.0)) * bodyAlpha
     + linearToSrgb(clamp(auraColor, 0.0, 1.0)) * auraAlpha * (1.0 - bodyAlpha);
+
+  // --- Thinking: three small moons rise out of the orb and circle it -----------
+  // A tilted orbit, so each passes in front and then behind; nearer moons are larger.
+  float thinking = uState[2];
+  if (thinking > 0.01) {
+    vec3 moonLight = linearToSrgb(mix(uColorB, vec3(1.0), 0.55));
+    vec3 moonShade = linearToSrgb(uColorA);
+    vec2 tilt = vec2(cos(0.35), sin(0.35));
+    for (int i = 0; i < 3; i++) {
+      float a = uTime * 1.25 + float(i) * 2.0944 + 0.25 * sin(uTime * 0.7 + float(i));
+      float depth = sin(a); // > 0: in front of the orb
+      vec2 o = vec2(cos(a) * 1.75, depth * 0.45) * mix(0.6, 1.0, thinking);
+      vec2 at = vec2(o.x * tilt.x - o.y * tilt.y, o.x * tilt.y + o.y * tilt.x);
+      float size = 0.2 * (1.0 + 0.3 * depth) * thinking;
+      float d = length(p - at) / max(size, 1e-3);
+      float maa = 1.5 / (uRadius * max(size, 1e-3));
+      float disc = (1.0 - smoothstep(1.0 - maa, 1.0 + maa, d)) * thinking;
+      float halo = exp(-max(d - 1.0, 0.0) * 2.0) * 0.45 * thinking * (1.0 - disc);
+      // Lit from the upper left, like the orb.
+      vec2 local = (p - at) / max(size, 1e-3);
+      vec3 moonColor = mix(moonShade, moonLight, clamp(0.75 - dot(local, vec2(0.45, -0.45)), 0.0, 1.0));
+      // Behind the orb, the orb hides it.
+      float seen = depth > 0.0 ? 1.0 : 1.0 - bodyAlpha;
+      float m = clamp(disc + halo, 0.0, 1.0) * seen;
+      color = moonColor * m + color * (1.0 - m);
+      alpha = m + alpha * (1.0 - m);
+    }
+  }
   color += (dither(frag) - 0.5) * (1.5 / 255.0) * alpha;
   gl_FragColor = vec4(color, alpha);
 }

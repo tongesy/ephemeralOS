@@ -24,6 +24,7 @@ function harness(options: { connectFails?: boolean } = {}) {
     audio: vi.fn(),
     ready: vi.fn(),
     heard: vi.fn(),
+    caughtUp: vi.fn(),
     ended: vi.fn(),
   };
   const session = new VoiceSession(deps);
@@ -36,12 +37,14 @@ describe('VoiceSession', () => {
   it('maps turn events to orb states', async () => {
     const h = harness();
     await h.session.start();
-    expect(h.states).toEqual(['thinking', 'listening']);
+    expect(h.states).toEqual(['listening']);
     expect(h.deps.ready).toHaveBeenCalledTimes(1);
     h.emit('input_audio_buffer.speech_started');
     expect(h.deps.heard).toHaveBeenCalledTimes(1);
     h.emit('input_audio_buffer.speech_stopped');
     expect(h.last()).toBe('thinking');
+    // A pause means the backlog from before the connection opened has been heard.
+    expect(h.deps.caughtUp).toHaveBeenCalledTimes(1);
     h.emit('output_audio_buffer.started');
     expect(h.last()).toBe('speaking');
     h.emit('output_audio_buffer.stopped');
