@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage } from 'node:http';
-import type { AddressInfo } from 'node:net';
+import { setDefaultAutoSelectFamilyAttemptTimeout, type AddressInfo } from 'node:net';
 import { join, resolve } from 'node:path';
 import { WebSocketServer, type WebSocket } from 'ws';
 import {
@@ -37,7 +37,15 @@ function send(ws: WebSocket, msg: ServerMessage): void {
   ws.send(JSON.stringify(msg));
 }
 
+/**
+ * Node races IPv6 and IPv4 but gives each attempt only 250 ms by default, so on a slow link
+ * (Brisbane to a European server is about 300 ms) every attempt is cut off and fetch fails
+ * with ETIMEDOUT while curl works. A second is plenty and still falls back quickly.
+ */
+const CONNECT_ATTEMPT_MS = 1000;
+
 export async function startGateway(config: GatewayOptions): Promise<Gateway> {
+  setDefaultAutoSelectFamilyAttemptTimeout(CONNECT_ATTEMPT_MS);
   const webRoot = config.webRoot ? resolve(config.webRoot) : null;
   const tools = config.tools ?? defaultTools({ homeDir: config.homeDir, fetch: config.fetch });
   const api = { homeDir: config.homeDir, tools, fetch: config.fetch };
