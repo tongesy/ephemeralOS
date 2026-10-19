@@ -1,7 +1,8 @@
-// The orb: a glass sphere holding a soft, drifting light.
+// The orb: a ball of soft, flowing plasma resting on a paper-white page.
 //
-// Drawn analytically (one ray-sphere hit per pixel, no raymarching) so it holds
-// 60 fps on integrated graphics. Bloom is added afterwards by the post pipeline.
+// Drawn analytically (one disc, domain-warped noise, no raymarching) so it holds
+// 60 fps on integrated graphics. Everything is computed in linear light and encoded
+// to sRGB at the end, so the plasma's glow and the page blend correctly.
 
 precision highp float;
 
@@ -13,20 +14,25 @@ uniform float uState[5];    // blend weights: zen, listening, thinking, speaking
 uniform float uInputLevel;  // mic, 0..1
 uniform float uOutputLevel; // voice output, 0..1
 uniform vec4 uBands;        // voice output bands, low → high, 0..1
+uniform float uSpectrumIn[32];  // mic spectrum, log-spaced, low → high, 0..1
+uniform float uSpectrumOut[32]; // voice output spectrum, log-spaced, low → high, 0..1
 
 // Layout.
 uniform vec2 uResolution;   // drawing-buffer pixels
 uniform vec2 uCenter;       // drawing-buffer pixels
 uniform float uRadius;      // drawing-buffer pixels
 
-// Look, pre-blended on the CPU from look.ts.
-uniform vec3 uCore;
-uniform vec3 uDeep;
-uniform vec3 uRim;
+// Look, pre-blended on the CPU from look.ts. Colours are linear.
+uniform vec3 uBackground;
+uniform vec3 uColorA;
+uniform vec3 uColorB;
+uniform vec3 uColorC;
 uniform float uIntensity;
+uniform float uWarp;
 uniform float uRipple;
 uniform float uBreath;
 uniform float uPulse;
+uniform float uAura;
 uniform float uSwirlPhase;  // integrated on the CPU so speed changes never jump
 uniform float uFlowPhase;
 
@@ -80,18 +86,21 @@ float snoise(vec3 v) {
   return 105.0 * dot(m * m, vec4(dot(p0, x0), dot(p1, x1), dot(p2, x2), dot(p3, x3)));
 }
 
-float fbm(vec3 p) {
-  float sum = 0.0;
-  float amp = 0.5;
-  for (int i = 0; i < 3; i++) {
-    sum += amp * snoise(p);
-    p = p * 2.02 + 7.13;
-    amp *= 0.5;
-  }
-  return sum;
+// Sample a spectrum at u ∈ [0, 1] with smooth interpolation between bins, so the
+// edge it shapes stays a curve rather than a polygon.
+float spectrumIn(float u) {
+  float x = clamp(u, 0.0, 1.0) * 31.0;
+  int i = int(floor(x));
+  return mix(uSpectrumIn[i], uSpectrumIn[min(i + 1, 31)], smoothstep(0.0, 1.0, fract(x)));
 }
 
-// Interleaved gradient noise; dithers away banding in the dark gradients.
+float spectrumOut(float u) {
+  float x = clamp(u, 0.0, 1.0) * 31.0;
+  int i = int(floor(x));
+  return mix(uSpectrumOut[i], uSpectrumOut[min(i + 1, 31)], smoothstep(0.0, 1.0, fract(x)));
+}
+
+// Interleaved gradient noise; dithers away banding in the soft gradients.
 float dither(vec2 frag) {
   return fract(52.9829189 * fract(dot(frag, vec2(0.06711056, 0.00583715))));
 }
@@ -102,6 +111,12 @@ mat2 rotate(float a) {
   return mat2(c, -s, s, c);
 }
 
+vec3 linearToSrgb(vec3 c) {
+  vec3 lo = c * 12.92;
+  vec3 hi = 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055;
+  return mix(lo, hi, step(vec3(0.0031308), c));
+}
+
 void main() {
   vec2 frag = vUv * uResolution;
   vec2 p = (frag - uCenter) / uRadius;
@@ -109,84 +124,76 @@ void main() {
   float listening = uState[1];
   float speaking = uState[3];
 
-  // --- Silhouette: breathing, listening ripples, speaking bloom ------------
-  float r0 = length(p);
+  // --- Silhouette: the audio itself shapes the edge ----------------------------
+  // The spectrum wraps the orb symmetrically: lows at the bottom, highs at the top.
+  float around = abs(atan(p.x, -p.y)) / 3.14159265;
   float angle = atan(p.y, p.x);
   vec2 ring = vec2(cos(angle), sin(angle));
-
   float breath = uBreath * sin(uTime * 0.9);
-  float pulse = uPulse * (0.07 * uOutputLevel + 0.035 * uBands.x);
-  float rippleAmp = uRipple * (0.008 + 0.032 * uInputLevel);
-  float ripple = rippleAmp * (
-      0.6 * snoise(vec3(ring * 1.4, uTime * 0.8))
-    + 0.4 * sin(angle * 6.0 - uTime * 2.4));
-  float radius = 1.0 + breath + pulse + ripple;
+  float voiceIn = uRipple * 0.12 * spectrumIn(around);
+  float voiceOut = uPulse * (0.10 * spectrumOut(around) + 0.04 * uOutputLevel);
+  float drift = uRipple * 0.008 * snoise(vec3(ring * 1.4, uTime * 0.8));
+  float radius = 1.0 + breath + voiceIn + voiceOut + drift;
 
-  float r = r0 / radius;
+  float r = length(p) / radius;
   vec2 q = p / radius;
   float aa = 1.5 / (uRadius * radius);
-  float body = 1.0 - smoothstep(1.0 - aa, 1.0 + aa, r);
+  // A slightly feathered edge: plasma has no hard shell.
+  float body = 1.0 - smoothstep(1.0 - 0.025 - aa, 1.0 + aa, r);
 
-  vec3 color = vec3(0.0);
+  // --- Aura: the orb's light falling on the page -----------------------------
+  vec3 auraColor = mix(uColorA, uColorB, 0.5);
+  float outside = max(r - 1.0, 0.0);
+  float aura = uAura * (0.55 * exp(-outside * 5.0) + 0.25 * exp(-outside * 1.6));
+  vec3 page = mix(uBackground, auraColor, clamp(aura, 0.0, 1.0));
+
+  vec3 color = page;
 
   if (r < 1.0 + aa) {
-    // --- Glass surface ------------------------------------------------------
+    // Curve the plane onto a sphere so the plasma reads as a volume.
     float z = sqrt(max(1.0 - dot(q, q), 0.0));
-    vec3 n = vec3(q, z);
-    float fresnel = pow(1.0 - z, 4.0);
-    vec3 keyDir = normalize(vec3(-0.45, 0.62, 0.64));
+    vec2 s = q * (1.3 - 0.4 * z);
+    s = rotate(uSwirlPhase * (1.1 - 0.6 * length(s))) * s;
 
-    // Look through the glass: refraction pulls the interior towards the centre.
-    vec3 refr = refract(vec3(0.0, 0.0, -1.0), n, 1.0 / 1.45);
-    vec2 inner = q * 0.78 + refr.xy * 0.2;
+    // --- Plasma: large, slow fields of colour, gently folded by a warp --------
+    vec3 P = vec3(s * 0.75, uFlowPhase);
+    vec2 w = vec2(snoise(P), snoise(P + vec3(5.2, 1.3, 2.7)));
+    vec2 sw = s * 0.75 + uWarp * 0.45 * w;
+    float n1 = snoise(vec3(sw, uFlowPhase * 1.2 + 1.7));
+    float n2 = snoise(vec3(sw * 1.3 + 4.0, uFlowPhase * 0.9 + 3.1));
+    float n3 = snoise(vec3(sw * 1.6 + 9.0, uFlowPhase * 1.5 + 5.3));
 
-    // Vortex: the centre turns faster than the edge.
-    float rr = length(inner);
-    inner = rotate(uSwirlPhase * (1.25 - rr)) * inner;
+    vec3 plasma = mix(uColorA, uColorB, smoothstep(-0.6, 0.6, n1));
+    plasma = mix(plasma, uColorC, smoothstep(0.0, 0.8, n2) * 0.8);
 
-    // --- The light inside ---------------------------------------------------
-    // A soft core, slow clouds around it, and fine ridged filaments of light.
-    float cloud = fbm(vec3(inner * 1.25, uFlowPhase));
-    float ridge = 1.0 - abs(snoise(vec3(inner * 2.1 + 5.0, uFlowPhase * 1.3 + 2.0)));
-    float filaments = pow(ridge, 6.0) * smoothstep(0.95, 0.15, rr);
-    float core = exp(-dot(inner, inner) * (7.0 - 2.5 * listening * uInputLevel));
+    // Soft hot spots drifting through the volume: the plasma's glow.
+    float hot = smoothstep(0.15, 0.95, n3);
+    float core = exp(-dot(q, q) * 2.2);
 
-    // Speaking: each band lights its own shell, low at the core, high at the rim.
-    float bands = speaking * (
+    // Inside, the same audio lights concentric shells: lows at the core, highs at the rim.
+    float rr = length(q);
+    float shells = listening * spectrumIn(rr) * 0.5 + speaking * (
         uBands.x * exp(-rr * rr * 6.0)
       + uBands.y * exp(-pow((rr - 0.3) * 7.0, 2.0))
       + uBands.z * exp(-pow((rr - 0.52) * 8.0, 2.0))
       + uBands.w * exp(-pow((rr - 0.72) * 9.0, 2.0)));
 
     float energy = uIntensity
-      * (1.0 + 0.45 * listening * uInputLevel + 0.4 * speaking * uOutputLevel);
-    float glow = core * (0.9 + 0.45 * cloud) + 0.5 * filaments * (0.2 + core) + 0.4 * bands;
-    // Shaped in linear light: squaring keeps the dim regions genuinely dark after sRGB.
-    glow = glow * glow * energy * 1.4;
+      * (1.0 + 0.7 * listening * uInputLevel + 0.4 * speaking * uOutputLevel);
+    float glow = clamp((hot * 0.5 + core * 0.22) * energy + shells * 0.35, 0.0, 1.0);
+    plasma = mix(plasma, vec3(1.0), glow);
 
-    // The medium stays dark and clear, so the glass reads as glass, not stone.
-    vec3 medium = uDeep * (0.12 + 0.08 * cloud) * (1.0 - 0.6 * r * r);
-    vec3 light = mix(uRim * uRim, uCore, smoothstep(0.02, 0.7, glow)) * glow * 1.8;
+    // Volume: light gathers at the rim, with a soft key light from above.
+    float rim = pow(1.0 - z, 3.0);
+    plasma = mix(plasma, mix(uColorB, vec3(1.0), 0.5), rim * 0.45);
+    vec3 keyDir = normalize(vec3(-0.4, 0.6, 0.7));
+    float sheen = pow(max(dot(vec3(q, z), keyDir), 0.0), 18.0) * 0.18;
+    plasma += sheen;
 
-    // Light through a glass ball gathers on the rim opposite the key light.
-    vec2 dir = q / max(length(q), 1e-4);
-    float caustic = smoothstep(0.7, 0.97, r) * pow(max(dot(dir, -keyDir.xy * 1.25), 0.0), 3.0);
-    vec3 interior = medium + light + uCore * caustic * 0.22 * energy;
-
-    // --- Glass: thin rim light, a crisp highlight and a broad soft sheen ----
-    float spec = pow(max(dot(reflect(-keyDir, n), vec3(0.0, 0.0, 1.0)), 0.0), 220.0);
-    float sheen = pow(max(dot(n, keyDir), 0.0), 10.0) * 0.07;
-    vec3 rim = uRim * fresnel * (0.5 + 0.5 * uIntensity);
-    vec3 glass = rim + vec3(spec * 0.85 + sheen);
-
-    color = (interior * (1.0 - 0.5 * fresnel) + glass) * body;
+    color = mix(page, plasma, body);
   }
 
-  // --- Halo: a soft falloff into the black, never a neon ring --------------
-  float outside = max(r - 1.0, 0.0);
-  float halo = exp(-outside * 9.0) * 0.10 + exp(-outside * 2.6) * 0.035;
-  color += uRim * halo * uIntensity * (1.0 - body);
-
-  color += (dither(frag) - 0.5) / 255.0;
-  gl_FragColor = vec4(max(color, 0.0), 1.0);
+  color = linearToSrgb(clamp(color, 0.0, 1.0));
+  color += (dither(frag) - 0.5) * (1.5 / 255.0);
+  gl_FragColor = vec4(color, 1.0);
 }

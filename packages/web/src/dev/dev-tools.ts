@@ -4,13 +4,17 @@
  *
  *   Space / →   next state        ←   previous state
  *   1–5         zen, listening, thinking, speaking, error
- *   D           dock / undock     P   frame-time readout
+ *   D           show / hide a demo card (the orb moves into open space)
+ *   P           frame-time readout
  *   V           simulated voice output (drives `speaking` without a voice session)
+ *   A           voice preview: talking moves zen → listening, silence moves back
+ *               (on by default; picking a state by hand turns it off)
  */
 import { ORB_STATES } from '@ephemeralos/shared';
 import type { LevelsSnapshot } from '../audio/audio-levels.ts';
 import type { Orb } from '../orb/orb.ts';
 import type { PerfOverlay } from '../perf/perf-overlay.ts';
+import { DemoSurface } from './demo-surface.ts';
 
 export interface DevToolsHost {
   orb: Orb;
@@ -22,8 +26,15 @@ export interface DevTools {
   decorate(levels: LevelsSnapshot, now: number): void;
 }
 
+/** Mic level that counts as talking, and how long silence lasts before zen returns. */
+const PREVIEW_THRESHOLD = 0.3;
+const PREVIEW_HANG_MS = 1500;
+
 export function installDevTools({ orb, perf }: DevToolsHost): DevTools {
   let simulateVoice = true;
+  let voicePreview = true;
+  let lastVoice = -Infinity;
+  const demo = new DemoSurface((occupied) => orb.setOccupied(occupied));
 
   const step = (delta: number): void => {
     const i = ORB_STATES.indexOf(orb.state);
@@ -33,21 +44,36 @@ export function installDevTools({ orb, perf }: DevToolsHost): DevTools {
   window.addEventListener('keydown', (event) => {
     if (event.repeat || event.metaKey || event.ctrlKey || event.altKey) return;
     const digit = Number(event.key);
+    const manual = (digit >= 1 && digit <= ORB_STATES.length) || event.key.startsWith('Arrow');
+    if (manual || event.key === ' ') voicePreview = false;
     if (digit >= 1 && digit <= ORB_STATES.length) orb.setState(ORB_STATES[digit - 1]!);
     else if (event.key === ' ' || event.key === 'ArrowRight') step(1);
     else if (event.key === 'ArrowLeft') step(-1);
-    else if (event.key === 'd') orb.setDocked(!orb.docked);
+    else if (event.key === 'a') voicePreview = !voicePreview;
+    else if (event.key === 'd') demo.toggle();
     else if (event.key === 'p') perf.toggle();
     else if (event.key === 'v') simulateVoice = !simulateVoice;
     else return;
     event.preventDefault();
-    console.info(`[dev] state=${orb.state} docked=${orb.docked} voice=${simulateVoice}`);
+    console.info(
+      `[dev] state=${orb.state} card=${demo.shown} voice=${simulateVoice} preview=${voicePreview}`,
+    );
   });
 
-  console.info('[dev] orb shortcuts: Space/←/→ cycle, 1–5 pick, D dock, P perf, V voice');
+  console.info(
+    '[dev] orb shortcuts: Space/←/→ cycle, 1–5 pick, A preview, D card, P perf, V voice',
+  );
 
   return {
     decorate(levels, now) {
+      if (voicePreview && (orb.state === 'zen' || orb.state === 'listening')) {
+        if (levels.input > PREVIEW_THRESHOLD) {
+          lastVoice = now;
+          orb.setState('listening');
+        } else if (orb.state === 'listening' && now - lastVoice > PREVIEW_HANG_MS) {
+          orb.setState('zen');
+        }
+      }
       if (!simulateVoice || orb.state !== 'speaking' || levels.output > 0.02) return;
       // Syllable-ish envelope: a fast carrier gated by a slower phrase rhythm.
       const t = now / 1000;
@@ -59,6 +85,16 @@ export function installDevTools({ orb, perf }: DevToolsHost): DevTools {
       levels.bands[1] = out * (0.6 + 0.4 * Math.sin(t * 9.0 + 1.0));
       levels.bands[2] = out * (0.45 + 0.35 * Math.sin(t * 13.0 + 2.0));
       levels.bands[3] = out * (0.25 + 0.25 * Math.sin(t * 17.0 + 3.0));
+      // Two drifting formants over a falling tilt, roughly the shape of a voice.
+      const f1 = 0.22 + 0.08 * Math.sin(t * 2.3);
+      const f2 = 0.55 + 0.12 * Math.sin(t * 1.7 + 1.0);
+      const n = levels.spectrumOut.length;
+      for (let i = 0; i < n; i++) {
+        const x = i / (n - 1);
+        const peaks =
+          Math.exp(-(((x - f1) / 0.08) ** 2)) + 0.7 * Math.exp(-(((x - f2) / 0.1) ** 2));
+        levels.spectrumOut[i] = out * Math.min(1, 0.25 * (1 - x) + 0.8 * peaks);
+      }
     },
   };
 }

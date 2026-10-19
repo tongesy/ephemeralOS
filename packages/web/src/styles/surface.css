@@ -1,0 +1,73 @@
+/*
+ * Content surfaces (cards, lists, tables; M3). They fade into existence and back out:
+ * opacity, a little lift and a soft focus pull, all on one calm curve.
+ */
+.surface {
+  position: fixed;
+  padding: var(--size-6) var(--size-7);
+  opacity: 0;
+  transform: translateY(12px) scale(0.985);
+  filter: blur(8px);
+  transition:
+    opacity var(--eos-duration-slow) var(--eos-ease-out),
+    transform var(--eos-duration-slow) var(--eos-ease-out),
+    filter var(--eos-duration-slow) var(--eos-ease-out);
+}
+
+.surface[data-shown] {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+.surface__eyebrow {
+  margin: 0 0 var(--size-2);
+  font-size: 0.75rem;
+  font-weight: var(--eos-weight-medium);
+  letter-spacing: var(--eos-tracking-wide);
+  text-transform: uppercase;
+  color: var(--eos-stone);
+}
+
+.surface__title {
+  margin: 0 0 var(--size-5);
+  font-size: clamp(1.5rem, 2.4vw, 2.25rem);
+  font-weight: var(--eos-weight-light);
+  letter-spacing: var(--eos-tracking-tight);
+  line-height: 1.1;
+}
+
+.surface__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: item;
+}
+
+.surface__list li {
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  gap: var(--size-1) var(--size-3);
+  padding: var(--size-3) 0;
+  border-top: 1px solid var(--eos-glass-hairline);
+  counter-increment: item;
+}
+
+.surface__list li::before {
+  content: counter(item);
+  grid-row: span 2;
+  font-family: var(--eos-font-mono);
+  font-size: 0.875rem;
+  color: var(--eos-stone);
+  padding-top: 0.15em;
+}
+
+.surface__label {
+  font-size: 1.0625rem;
+  font-weight: var(--eos-weight-regular);
+}
+
+.surface__detail {
+  font-size: 0.875rem;
+  color: var(--eos-stone);
+}

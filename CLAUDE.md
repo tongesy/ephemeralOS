@@ -22,10 +22,11 @@ pnpm test         # vitest, all packages
   `PROTOCOL_VERSION` on incompatible changes.
 - `packages/gateway`: `config.ts` (env → config), `server.ts` (HTTP + WS), `static.ts`
   (serves the build and injects the token). Runs TypeScript directly via `tsx`; no build step.
-- `packages/web`: `main.ts` boots everything. `orb/` (shader, look table, state blend),
+- `packages/web`: `main.ts` boots everything. `orb/` (shader, look table, state blend,
+  placement in open space, springs),
   `audio/` (analysers, envelopes), `perf/` (frame meter, quality governor, readout),
-  `theme/palette.ts` (the one palette), `styles/` (tokens and base CSS), `dev/` (dev-only
-  shortcuts).
+  `theme/palette.ts` (the one palette), `styles/` (tokens, base CSS, fading surfaces),
+  `dev/` (dev-only shortcuts and a demo card).
 - Workspace packages export TypeScript source (`exports: ./src/index.ts`); Vite and tsx
   consume it directly.
 
@@ -41,7 +42,7 @@ pnpm test         # vitest, all packages
   behind `import.meta.env.DEV` and must not appear in `dist` (check with
   `grep -r "orb shortcuts" packages/web/dist` → nothing).
 - Colours come only from `theme/palette.ts`; CSS reads them as `--eos-*`. Design direction:
-  clean, Scandinavian, glassy; Geist / Geist Mono; black background. See
+  clean, Scandinavian, glassy; Geist / Geist Mono; warm white page; plasma orb. See
   [`docs/design.md`](docs/design.md).
 - Orb look changes go in `orb/look.ts`; the shader reads blended uniforms only. Keep the
   shader analytic (no raymarching) and inside the budget in

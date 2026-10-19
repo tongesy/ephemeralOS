@@ -49,3 +49,47 @@ export function toBands(bins: Uint8Array, binHz: number, out: Float32Array): Flo
   }
   return out;
 }
+
+/** Resolution of the spectra the orb maps around its edge. */
+export const SPECTRUM_SIZE = 32;
+
+/**
+ * Resample byte-scaled FFT magnitudes onto `out.length` log-spaced bins between
+ * `minHz` and `maxHz`, so speech's low formants get as much of the orb as its sibilants.
+ */
+export function toLogSpectrum(
+  bins: Uint8Array,
+  binHz: number,
+  out: Float32Array,
+  minHz = 80,
+  maxHz = 8000,
+): Float32Array {
+  const ratio = maxHz / minHz;
+  for (let i = 0; i < out.length; i++) {
+    const lo = Math.floor((minHz * ratio ** (i / out.length)) / binHz);
+    const hi = Math.max(lo + 1, Math.ceil((minHz * ratio ** ((i + 1) / out.length)) / binHz));
+    let sum = 0;
+    let count = 0;
+    for (let b = lo; b < hi && b < bins.length; b++, count++) sum += bins[b]!;
+    out[i] = count ? sum / (count * 255) : 0;
+  }
+  return out;
+}
+
+/** An Envelope for every bin of a spectrum. */
+export class SpectrumEnvelope {
+  readonly values: Float32Array;
+  private readonly envs: Envelope[];
+
+  constructor(size = SPECTRUM_SIZE, attackMs = 35, releaseMs = 220) {
+    this.values = new Float32Array(size);
+    this.envs = Array.from({ length: size }, () => new Envelope(attackMs, releaseMs));
+  }
+
+  update(target: Float32Array, dtMs: number): Float32Array {
+    for (let i = 0; i < this.values.length; i++) {
+      this.values[i] = this.envs[i]!.update(target[i] ?? 0, dtMs);
+    }
+    return this.values;
+  }
+}

@@ -6,13 +6,12 @@ or under 16.7 ms.
 
 ## How it stays inside the budget
 
-- **No raymarching.** The orb is one analytic ray–sphere hit per pixel
-  ([`orb.frag.glsl`](../packages/web/src/orb/orb.frag.glsl)). Pixels outside the sphere skip
-  the noise entirely and only compute the halo.
-- **Bounded noise.** Inside the sphere: one 3-octave fBm, one simplex sample for the
-  filaments and one for the edge ripple. Nothing loops on screen size.
-- **Cheap bloom.** `postprocessing`'s mipmap bloom works on a downsampled chain, merged with
-  tone mapping into a single effect pass.
+- **No raymarching, no post-processing.** The orb is one analytic disc curved onto a sphere,
+  drawn in a single full-screen pass
+  ([`orb.frag.glsl`](../packages/web/src/orb/orb.frag.glsl)). Pixels outside it skip the
+  noise entirely and only compute the aura.
+- **Bounded noise.** Inside the orb: six simplex samples (two for the warp, three colour
+  fields, one for the edge ripple). Nothing loops on screen size.
 - **Adaptive resolution.** [`QualityGovernor`](../packages/web/src/perf/frame-meter.ts) drops
   the render scale in 0.25 steps (down to 0.6×) after 1.5 s of slow frames and climbs back
   after 5 s of headroom, so a weak GPU degrades to slightly softer pixels, never to stutter.
@@ -33,7 +32,7 @@ or under 16.7 ms.
    device's native ratio (the governor never had to step down).
 
 For a frame-by-frame view, record 10 s in DevTools → Performance and check the Frames track
-for long frames and the GPU track for the orb and bloom passes.
+for long frames and the GPU track for the orb pass.
 
 ## Results
 

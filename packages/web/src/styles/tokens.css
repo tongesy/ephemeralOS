@@ -16,19 +16,19 @@
   --eos-tracking-wide: 0.04em;
 
   /* Fallbacks until applyPalette() runs. */
-  --eos-void: #000;
-  --eos-linen: #f3efe8;
-  --eos-stone: #a8a199;
-  --eos-slate: #5e5a55;
+  --eos-paper: #f7f5f2;
+  --eos-ink: #1c1b19;
+  --eos-stone: #76716b;
+  --eos-mist: #c9c4bd;
 
-  /* Glass */
-  --eos-glass-fill: color-mix(in oklab, var(--eos-linen) 6%, transparent);
-  --eos-glass-hairline: color-mix(in oklab, var(--eos-linen) 14%, transparent);
+  /* Glass: frosted white over paper. */
+  --eos-glass-fill: color-mix(in oklab, white 62%, transparent);
+  --eos-glass-hairline: color-mix(in oklab, var(--eos-ink) 8%, transparent);
   --eos-glass-blur: 24px;
   --eos-glass-radius: var(--size-4);
   --eos-glass-shadow:
-    0 1px 0 0 color-mix(in oklab, var(--eos-linen) 8%, transparent) inset,
-    0 24px 64px -24px rgb(0 0 0 / 0.6);
+    0 1px 0 0 rgb(255 255 255 / 0.8) inset, 0 1px 2px rgb(28 27 25 / 0.04),
+    0 24px 64px -24px rgb(28 27 25 / 0.16);
 
   /* Motion: calm, never bouncy. */
   --eos-ease: var(--ease-3);

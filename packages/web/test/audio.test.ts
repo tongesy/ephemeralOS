@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { Envelope, rms, rmsToLevel, toBands } from '../src/audio/envelope.ts';
+import {
+  Envelope,
+  SPECTRUM_SIZE,
+  SpectrumEnvelope,
+  rms,
+  rmsToLevel,
+  toBands,
+  toLogSpectrum,
+} from '../src/audio/envelope.ts';
 
 describe('audio features', () => {
   it('maps silence to 0 and loud speech to 1', () => {
@@ -27,5 +35,31 @@ describe('audio features', () => {
     const bins = new Uint8Array(512).fill(255);
     const bands = toBands(bins, 48000 / 1024, new Float32Array(4));
     expect(Array.from(bands)).toEqual([1, 1, 1, 1]);
+  });
+});
+
+describe('toLogSpectrum', () => {
+  it('spreads a flat spectrum evenly and stays in range', () => {
+    const bins = new Uint8Array(512).fill(128);
+    const out = toLogSpectrum(bins, 48000 / 1024, new Float32Array(SPECTRUM_SIZE));
+    for (const v of out) expect(v).toBeCloseTo(128 / 255);
+  });
+
+  it('puts low frequencies in the first bins', () => {
+    const binHz = 48000 / 1024;
+    const bins = new Uint8Array(512);
+    bins[Math.round(100 / binHz)] = 255;
+    const out = toLogSpectrum(bins, binHz, new Float32Array(SPECTRUM_SIZE));
+    const peak = out.indexOf(Math.max(...out));
+    expect(peak).toBeLessThan(SPECTRUM_SIZE / 4);
+  });
+});
+
+describe('SpectrumEnvelope', () => {
+  it('follows each bin independently', () => {
+    const env = new SpectrumEnvelope(4);
+    env.update(new Float32Array([1, 0, 1, 0]), 200);
+    expect(env.values[0]).toBeGreaterThan(0.9);
+    expect(env.values[1]).toBe(0);
   });
 });

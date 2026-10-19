@@ -2,38 +2,42 @@
  * The one palette. The orb, the glass cards and (from M3) Vega-Lite charts all draw
  * from these values, so the screen always reads as a single object.
  *
- * Mood: Nordic dusk. Warm linen and stone for type and glass, muted natural accents,
- * set against true black so the orb owns the room.
+ * Mood: Nordic daylight. Warm paper white, soft ink, and a handful of clear pastel
+ * accents that the orb's plasma is mixed from.
  */
 export const palette = {
-  /** Page background. True black: the screen should feel switched off when idle. */
-  void: '#000000',
+  /** Page background: a warm, paper white. */
+  paper: '#F7F5F2',
 
-  /** Primary type and glass highlights. */
-  linen: '#F3EFE8',
+  /** Primary type. */
+  ink: '#1C1B19',
   /** Secondary type. */
-  stone: '#A8A199',
+  stone: '#76716B',
   /** Tertiary type, hairlines. */
-  slate: '#5E5A55',
+  mist: '#C9C4BD',
 
   /** Accents, named for where they come from. */
-  fjord: '#8FB3C2',
-  frost: '#D6E6EC',
-  heather: '#B4ABD3',
-  sand: '#E8D6BA',
-  clay: '#C29A78',
-  moss: '#9DB39A',
+  fjord: '#6E9DB3',
+  azure: '#4FA3D1',
+  glacier: '#9CD3E2',
+  heather: '#9A8CD0',
+  lilac: '#C9B6EC',
+  sand: '#E8C08F',
+  coral: '#E8937A',
+  rose: '#DE8FAE',
+  moss: '#8DB59A',
+  clay: '#B98E70',
 } as const;
 
 export type PaletteColor = keyof typeof palette;
 
-/** Series order for charts, chosen to stay distinguishable on black. */
+/** Series order for charts, chosen to stay distinguishable on paper. */
 export const seriesColors = [
   palette.fjord,
-  palette.sand,
+  palette.coral,
   palette.heather,
   palette.moss,
-  palette.clay,
+  palette.sand,
 ] as const;
 
 /** Expose the palette to CSS as `--eos-<name>` custom properties. */

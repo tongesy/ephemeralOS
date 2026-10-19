@@ -5,9 +5,15 @@
 > - The Surface Book 2 / Arch Linux kiosk target is dropped. The performance budget is now
 >   "60 fps on integrated graphics" on a typical laptop, measured as described in
 >   [`performance.md`](performance.md).
-> - Design direction: clean, Scandinavian, glassy, beautiful type. Geist and Geist Mono,
->   Open Props tokens, frosted glass cards, a bloom pass on the three.js orb, and one shared
+> - Design direction: clean, Scandinavian, glassy, beautiful type, on a warm white page.
+>   The orb is a ball of soft, glowing plasma (Scott's call after reviewing the glass sphere
+>   on black). Geist and Geist Mono, Open Props tokens, frosted glass cards, and one shared
 >   palette across orb, cards and charts. See [`design.md`](design.md).
+> - Layout: the orb is small and centred so the page feels clean and open. When content
+>   appears it fades in, and the orb glides into the most open space left on screen (rather
+>   than docking to a fixed corner), then back to the centre as the content fades out.
+> - The orb's edge and inner glow follow the live audio spectrum, in (microphone) and out
+>   (voice), not a generic ripple.
 > - API details marked [verify] were checked on 2026-10-19; see
 >   [`api-verification.md`](api-verification.md).
 >

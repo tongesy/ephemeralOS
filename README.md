@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/orb-states.png" alt="The orb in its five states: zen, listening, thinking, speaking and error" width="100%">
+  <img src="docs/assets/orb-states.png" alt="The plasma orb in its five states: zen, listening, thinking, speaking and error" width="100%">
 </p>
 
 <h1 align="center">ephemeralOS</h1>
@@ -13,6 +13,10 @@ is nothing to type, tap or click once it's running. It remembers, hands deep wor
 model, and reports back when it's done.
 
 Open source, bring your own API keys, local-first.
+
+<p align="center">
+  <img src="docs/assets/open-space.png" alt="A glass card fades in on the left; the orb has glided into the open space on the right" width="80%">
+</p>
 
 > **Status:** early. The orb (M1) is here; the voice loop (M2) is next. See the
 > [roadmap](#roadmap).
@@ -41,17 +45,19 @@ pnpm install
 pnpm dev
 ```
 
-Open <http://localhost:5173> in Chrome and click once to grant the microphone.
+Open <http://localhost:5173> in Chrome and click once to grant the microphone. Until the
+wake word lands in M2, a dev-only preview moves the orb to listening while you talk.
 
 In development builds, the keyboard drives the orb so you can see every state:
 
-| Key                                            | Action                                    |
-| ---------------------------------------------- | ----------------------------------------- |
-| <kbd>Space</kbd> / <kbd>→</kbd> / <kbd>←</kbd> | Next / previous state                     |
-| <kbd>1</kbd>–<kbd>5</kbd>                      | Zen, listening, thinking, speaking, error |
-| <kbd>D</kbd>                                   | Dock to the corner and back               |
-| <kbd>P</kbd>                                   | Frame-time readout                        |
-| <kbd>V</kbd>                                   | Toggle simulated voice output             |
+| Key                                            | Action                                                       |
+| ---------------------------------------------- | ------------------------------------------------------------ |
+| <kbd>Space</kbd> / <kbd>→</kbd> / <kbd>←</kbd> | Next / previous state                                        |
+| <kbd>1</kbd>–<kbd>5</kbd>                      | Zen, listening, thinking, speaking, error                    |
+| <kbd>A</kbd>                                   | Voice preview: talking switches to listening (on by default) |
+| <kbd>D</kbd>                                   | Show or hide a demo card (the orb moves into open space)     |
+| <kbd>P</kbd>                                   | Frame-time readout                                           |
+| <kbd>V</kbd>                                   | Toggle simulated voice output                                |
 
 None of this exists in production builds.
 
@@ -67,7 +73,7 @@ pnpm start   # http://localhost:4317
 ```
 Browser (the body)                         Gateway (local Node process, 127.0.0.1)
 ┌───────────────────────────────┐          ┌──────────────────────────────────────┐
-│ Orb (three.js + bloom)        │          │ HTTP: serves the client, injects a   │
+│ Orb (three.js plasma shader)  │          │ HTTP: serves the client, injects a   │
 │ Audio levels (AnalyserNode)   │◀── WS ──▶│       per-launch token               │
 │ Wake word, voice session (M2) │  token + │ WS:   validated messages (zod)       │
 │ Display components (M3)       │  origin  │ Realtime credentials, tools, jobs,   │
@@ -90,7 +96,7 @@ tasks go to Anthropic. Keys, memory and transcripts stay in `~/.ephemeralos/`.
 ## Roadmap
 
 - [x] **M0** Scaffold: workspace, gateway, tokens, type, CI
-- [x] **M1** The orb: five states, smooth transitions, mic-reactive, bloom
+- [x] **M1** The orb: plasma, five states, audio-shaped, glides into open space
 - [ ] **M2** Voice loop: `init`, wake word, Realtime session, barge-in, fallback
 - [ ] **M3** Display: cards, lists, tables, charts, voice navigation
 - [ ] **M4** Delegate: async Claude jobs with web search

@@ -9,8 +9,8 @@ body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: var(--eos-void);
-  color: var(--eos-linen);
+  background: var(--eos-paper);
+  color: var(--eos-ink);
   font-family: var(--eos-font-sans);
   font-weight: var(--eos-weight-light);
   -webkit-font-smoothing: antialiased;
@@ -50,8 +50,8 @@ body {
   border: 1px solid var(--eos-glass-hairline);
   border-radius: var(--eos-glass-radius);
   box-shadow: var(--eos-glass-shadow);
-  backdrop-filter: blur(var(--eos-glass-blur)) saturate(1.2);
-  -webkit-backdrop-filter: blur(var(--eos-glass-blur)) saturate(1.2);
+  backdrop-filter: blur(var(--eos-glass-blur)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--eos-glass-blur)) saturate(1.4);
 }
 
 .perf {

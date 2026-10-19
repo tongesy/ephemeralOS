@@ -2,6 +2,7 @@ import '@fontsource-variable/geist';
 import '@fontsource-variable/geist-mono';
 import './styles/tokens.css';
 import './styles/base.css';
+import './styles/surface.css';
 
 import { AudioLevels } from './audio/audio-levels.ts';
 import type { DevTools } from './dev/dev-tools.ts';
@@ -62,6 +63,8 @@ async function startAudio(): Promise<void> {
     showHint('Microphone access is needed. Allow it in the address bar, then reload.');
     return;
   }
+  // Some browsers allow audio once the microphone is granted; try before asking for a click.
+  await audio.resume().catch(() => undefined);
   if (!audio.running) showHint('Click once to let me hear you');
 }
 
