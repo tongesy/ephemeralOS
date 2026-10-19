@@ -7,7 +7,7 @@ import { Readable } from 'node:stream';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { MediaItem } from '@ephemeralos/shared';
 import { isPublicAddress } from '../src/media/address.ts';
-import { findEpisode, pickEpisode } from '../src/media/podcasts.ts';
+import { findEpisode, pickEpisode, pickShow } from '../src/media/podcasts.ts';
 import { MediaRelay, relayable, type OpenUpstream } from '../src/media/relay.ts';
 import { checkVideo, posterSources } from '../src/media/youtube.ts';
 import { createPlayTool } from '../src/tools/play.ts';
@@ -217,6 +217,28 @@ describe('podcasts', () => {
     expect(pickEpisode(episodes, 'the louvre one')?.trackName).toBe('Inside the Louvre heist');
     expect(pickEpisode(episodes, 'nothing matching')?.trackName).toBe('The election, explained');
     expect(pickEpisode([], 'x')).toBeUndefined();
+  });
+
+  it('finds the famous show among namesakes, by its hosts and by still being made', () => {
+    const now = Date.parse('2026-10-19');
+    const namesake = {
+      collectionId: 1,
+      collectionName: 'The All In Podcast',
+      artistName: 'Rod Watson',
+      trackCount: 60,
+      releaseDate: '2026-08-31T10:00:00Z',
+    };
+    const famous = {
+      collectionId: 2,
+      collectionName: 'All-In with Chamath, Jason, Sacks & Friedberg',
+      artistName: 'All-In Podcast, LLC',
+      trackCount: 300,
+      releaseDate: '2026-10-17T10:00:00Z',
+    };
+    expect(pickShow([namesake, famous], 'All In', undefined, now)?.collectionId).toBe(2);
+    expect(pickShow([namesake, famous], 'All In', 'Chamath, Sacks', now)?.collectionId).toBe(2);
+    expect(pickShow([namesake, famous], 'All In Rod Watson', undefined, now)?.collectionId).toBe(1);
+    expect(pickShow([], 'x')).toBeUndefined();
   });
 
   it('says so when there is no such show', async () => {

@@ -42,6 +42,8 @@ export class DisplayManager {
    * would replace the real thing; until the user's next turn, that is refused.
    */
   private toolResult: string | null = null;
+  /** Something just started playing and the user hasn't spoken since: it has the stage. */
+  private justPlayed = false;
 
   constructor(
     private readonly onLayout: (occupied: Rect[]) => void,
@@ -58,6 +60,12 @@ export class DisplayManager {
   display(rawArgs: unknown, fromTool = false): string {
     const parsed = parseDisplay(rawArgs);
     if (!parsed.ok) return JSON.stringify({ error: parsed.error });
+    if (this.justPlayed && !fromTool) {
+      return JSON.stringify({
+        ok: false,
+        note: 'It is playing on screen. Do not put anything else up; just say what is playing.',
+      });
+    }
     const shown = this.stack.shown;
     const replaces = wouldReplaceToolResult({
       toolResult: this.el ? this.toolResult : null,
@@ -100,6 +108,18 @@ export class DisplayManager {
   /** The user started speaking: a new turn may change what's shown. */
   userSpoke(): void {
     this.toolResult = null;
+    this.justPlayed = false;
+  }
+
+  /**
+   * Something started playing: it takes the stage. What was shown goes (back brings it
+   * back), and until the user speaks again the voice model can't put a card over it.
+   */
+  mediaStarted(): void {
+    this.justPlayed = true;
+    if (!this.stack.shown) return;
+    this.stack.hide();
+    this.clearSurface();
   }
 
   /** A conversation started again: keep what's shown. */

@@ -25,7 +25,14 @@ export const PlayArgs = z.object({
     .string()
     .min(2)
     .max(200)
-    .describe('podcast: the show\'s name; video or music: what it is ("Clair de Lune Debussy")'),
+    .describe(
+      'podcast: the show\'s full name as it is best known ("All-In with Chamath, Jason, Sacks & Friedberg"); video or music: what it is ("Clair de Lune Debussy")',
+    ),
+  hosts: z
+    .string()
+    .max(200)
+    .optional()
+    .describe('podcast: its hosts, if you know them, so the right show is found among namesakes'),
   episode: z
     .string()
     .max(200)
@@ -94,7 +101,10 @@ export function createPlayTool(options: {
     async run(rawArgs, context) {
       const args = PlayArgs.parse(rawArgs);
       if (args.kind === 'podcast') {
-        const found = await findEpisode(args.query, args.episode, { fetch: doFetch });
+        const found = await findEpisode(args.query, args.episode, {
+          fetch: doFetch,
+          ...(args.hosts && { hosts: args.hosts }),
+        });
         if (!found) return { error: `I couldn't find a podcast called "${args.query}".` };
         const id = options.relay.register(found.audioUrl);
         if (!id) return { error: 'That episode has no playable audio.' };

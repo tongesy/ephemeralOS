@@ -15,7 +15,11 @@ const Show = z.looseObject({
   collectionName: z.string(),
   artistName: z.string().optional(),
   artworkUrl600: z.string().optional(),
+  trackCount: z.number().optional(),
+  /** When its latest episode came out. */
+  releaseDate: z.string().optional(),
 });
+type Show = z.infer<typeof Show>;
 
 const Episode = z.looseObject({
   wrapperType: z.literal('podcastEpisode'),
@@ -66,6 +70,38 @@ export function pickEpisode<T extends { trackName: string }>(
   return best;
 }
 
+const DAY_MS = 86_400_000;
+
+/**
+ * The show that was meant, from Apple's matches (most relevant first). Many small shows
+ * share a famous one's name ("All In"), so a match is scored on the words of its name and
+ * hosts against what was asked for, then on still being made and having many episodes;
+ * Apple's own order breaks ties.
+ */
+export function pickShow(
+  shows: Show[],
+  wanted: string,
+  hosts?: string,
+  now = Date.now(),
+): Show | undefined {
+  const want = words(wanted);
+  const host = words(hosts ?? '');
+  let best: Show | undefined;
+  let bestScore = -Infinity;
+  shows.forEach((show, rank) => {
+    const by = words(`${show.collectionName} ${show.artistName ?? ''}`);
+    let score = 0;
+    for (const w of want) if (by.has(w)) score += 10;
+    for (const w of host) if (by.has(w)) score += 10;
+    const latest = Date.parse(show.releaseDate ?? '');
+    if (now - latest < 45 * DAY_MS) score += 8;
+    score += Math.min(show.trackCount ?? 0, 400) / 100;
+    score -= rank * 0.5;
+    if (score > bestScore) [best, bestScore] = [show, score];
+  });
+  return best;
+}
+
 const httpsArt = (url?: string): string | undefined => (url && isArtworkUrl(url) ? url : undefined);
 
 /**
@@ -75,7 +111,7 @@ const httpsArt = (url?: string): string | undefined => (url && isArtworkUrl(url)
 export async function findEpisode(
   query: string,
   episode: string | undefined,
-  options: { fetch?: typeof fetch; country?: string } = {},
+  options: { fetch?: typeof fetch; country?: string; hosts?: string } = {},
 ): Promise<FoundEpisode | null> {
   const doFetch = options.fetch ?? fetch;
   const country = options.country ?? 'US';
@@ -89,12 +125,14 @@ export async function findEpisode(
     term: query,
     media: 'podcast',
     entity: 'podcast',
-    limit: '5',
+    limit: '10',
     country,
   });
-  const show = (await get(`${SEARCH}?${search}`))
-    .map((r) => Show.safeParse(r))
-    .find((r) => r.success)?.data;
+  const shows = (await get(`${SEARCH}?${search}`)).flatMap((r) => {
+    const parsed = Show.safeParse(r);
+    return parsed.success ? [parsed.data] : [];
+  });
+  const show = pickShow(shows, query, options.hosts);
   if (!show) return null;
 
   const lookup = new URLSearchParams({

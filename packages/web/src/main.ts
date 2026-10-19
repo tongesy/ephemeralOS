@@ -153,7 +153,10 @@ if (gateway) {
     if (msg.type === 'welcome') console.info(`[gateway] connected, protocol ${msg.protocol}`);
     // The gateway can put things on screen too (a forecast, and from M4 the brain's results).
     if (msg.type === 'display') display.display(msg.args, true);
-    if (msg.type === 'media') media.play(msg.item);
+    if (msg.type === 'media') {
+      display.mediaStarted();
+      media.play(msg.item);
+    }
   });
   gateway.connect();
 } else {
