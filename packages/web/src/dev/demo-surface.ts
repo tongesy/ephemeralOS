@@ -28,7 +28,6 @@ export class DemoSurface {
     el.style.translate = '0 -50%';
     el.style.width = 'min(440px, 42vw)';
     el.innerHTML = `
-      <p class="surface__eyebrow">Three options</p>
       <h2 class="surface__title">A quiet weekend in Copenhagen</h2>
       <ol class="surface__list">
         <li><span class="surface__label">Hotel Sanders</span><span class="surface__detail">Kongens Nytorv · from 3,200 kr</span></li>

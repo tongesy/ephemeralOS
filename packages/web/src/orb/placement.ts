@@ -14,9 +14,9 @@ export interface Placement {
 }
 
 /** Orb radius as a fraction of the shorter screen side: small, so the page feels open. */
-export const RESTING_SIZE = 0.085;
+export const RESTING_SIZE = 0.0425;
 /** Radius while content is on screen. */
-export const SHARING_SIZE = 0.055;
+export const SHARING_SIZE = 0.03;
 /** Breathing room between the orb, content and the screen edge (fraction of shorter side). */
 const GAP = 0.06;
 /** Candidate positions per axis when searching for open space. */
@@ -61,6 +61,6 @@ export function openSpacePlacement(width: number, height: number, occupied: Rect
   }
 
   // If the content leaves very little room, shrink rather than overlap.
-  const fit = Math.max(best.clearance - short * GAP * 0.5, short * 0.025);
+  const fit = Math.max(best.clearance - short * GAP * 0.5, short * 0.015);
   return { x: best.x, y: best.y, radius: Math.min(radius, fit) };
 }

@@ -12,10 +12,11 @@ or under 16.7 ms.
   noise entirely and only compute the aura.
 - **Bounded noise.** Inside the orb: six simplex samples (two for the warp, three colour
   fields, one for the edge ripple). Nothing loops on screen size.
+- **Full-density rendering.** The orb renders at the display's pixel ratio (up to 3×) so it
+  stays crisp; it is small, and pixels away from it only compute the aura.
 - **Adaptive resolution.** [`QualityGovernor`](../packages/web/src/perf/frame-meter.ts) drops
-  the render scale in 0.25 steps (down to 0.6×) after 1.5 s of slow frames and climbs back
-  after 5 s of headroom, so a weak GPU degrades to slightly softer pixels, never to stutter.
-- **Pixel ratio capped at 2×.** A 4K panel does not render 4× the pixels for a soft glow.
+  the render scale in 0.25 steps after 1.5 s of slow frames and climbs back after 5 s of
+  headroom, but never below 1× (one buffer pixel per CSS pixel), so it never looks blurry.
 - **Reduced motion.** With `prefers-reduced-motion`, motion amplitudes and speeds drop to 30%.
 
 ## How to measure

@@ -60,7 +60,7 @@ change to one state never breaks a transition.
 
 ## Space
 
-The orb is small (8.5% of the shorter screen side) and centred, so the page reads as clean
+The orb is small (a radius of 4.25% of the shorter screen side) and centred, so the page reads as clean
 and open. When content appears it fades into existence (opacity, a slight lift and a soft
 focus pull; [`surface.css`](../packages/web/src/styles/surface.css)), and the orb glides into
 the most open space left on screen at a smaller size

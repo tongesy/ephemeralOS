@@ -45,7 +45,7 @@ export class Orb {
   private time = 0;
   private swirlPhase = 0;
   private flowPhase = 0;
-  private pixelRatio = Math.min(window.devicePixelRatio, 2);
+  private pixelRatio = Math.min(window.devicePixelRatio, 3);
 
   constructor(canvas: HTMLCanvasElement, options: OrbOptions) {
     this.motion = options.reducedMotion ? 0.3 : 1;

@@ -138,8 +138,8 @@ void main() {
   float r = length(p) / radius;
   vec2 q = p / radius;
   float aa = 1.5 / (uRadius * radius);
-  // A slightly feathered edge: plasma has no hard shell.
-  float body = 1.0 - smoothstep(1.0 - 0.025 - aa, 1.0 + aa, r);
+  // A crisp, pixel-accurate edge.
+  float body = 1.0 - smoothstep(1.0 - aa, 1.0 + aa, r);
 
   // --- Aura: the orb's light falling on the page -----------------------------
   vec3 auraColor = mix(uColorA, uColorB, 0.5);
@@ -168,6 +168,9 @@ void main() {
 
     // Soft hot spots drifting through the volume: the plasma's glow.
     float hot = smoothstep(0.15, 0.95, n3);
+    // Fine filaments give the plasma definition up close.
+    float n4 = snoise(vec3(sw * 3.4 + 2.0, uFlowPhase * 2.0 + 7.0));
+    float fine = pow(1.0 - abs(n4), 16.0);
     float core = exp(-dot(q, q) * 2.2);
 
     // Inside, the same audio lights concentric shells: lows at the core, highs at the rim.
@@ -180,7 +183,7 @@ void main() {
 
     float energy = uIntensity
       * (1.0 + 0.7 * listening * uInputLevel + 0.4 * speaking * uOutputLevel);
-    float glow = clamp((hot * 0.5 + core * 0.22) * energy + shells * 0.35, 0.0, 1.0);
+    float glow = clamp((hot * 0.5 + core * 0.22 + fine * 0.14) * energy + shells * 0.35, 0.0, 1.0);
     plasma = mix(plasma, vec3(1.0), glow);
 
     // Volume: light gathers at the rim, with a soft key light from above.
@@ -189,6 +192,9 @@ void main() {
     vec3 keyDir = normalize(vec3(-0.4, 0.6, 0.7));
     float sheen = pow(max(dot(vec3(q, z), keyDir), 0.0), 18.0) * 0.18;
     plasma += sheen;
+    // A hairline of light right at the edge keeps the silhouette sharp.
+    float edgePx = (1.0 - r) / aa;
+    plasma = mix(plasma, vec3(1.0), exp(-edgePx * 0.6) * 0.35);
 
     color = mix(page, plasma, body);
   }

@@ -22,8 +22,10 @@ const orb = new Orb(canvas, { reducedMotion });
 const audio = new AudioLevels();
 const meter = new FrameMeter();
 const perf = new PerfOverlay();
-const maxRatio = Math.min(window.devicePixelRatio, 2);
-const quality = new QualityGovernor(maxRatio, maxRatio, (ratio) => orb.setPixelRatio(ratio));
+// Render at the display's full density (the orb is small, so this is cheap), and never
+// let the governor drop below one buffer pixel per CSS pixel: softness reads as blur.
+const maxRatio = Math.min(window.devicePixelRatio, 3);
+const quality = new QualityGovernor(maxRatio, maxRatio, (ratio) => orb.setPixelRatio(ratio), 1);
 
 if (new URLSearchParams(location.search).has('perf')) perf.toggle(true);
 
