@@ -22,6 +22,8 @@
 > - `init` (M2): the Anthropic key can be skipped until delegation (M4) needs it. It is run as
 >   `pnpm ephemeralos init` from the repo until the package is published to npm.
 > - The default Realtime model is `gpt-realtime-2.1-mini`, set in `config.json`.
+> - Deep work (M4) runs on whichever brain has a key: Claude when an Anthropic key is set,
+>   otherwise OpenAI with its own web search. One OpenAI key is enough to run everything.
 >
 > The brief below is otherwise kept as written.
 
