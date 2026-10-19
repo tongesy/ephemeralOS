@@ -43,6 +43,25 @@ Sources: [Forecast API](https://open-meteo.com/en/docs), [Geocoding API](https:/
 
 Source: [Web search tool](https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool).
 
+Rechecked 2026-10-19 for the `search` tool: versions are `web_search_20250305`,
+`web_search_20260209` and `web_search_20260318`; the dynamic-filtering versions need
+programmatic tool calling, so `search` uses the basic `web_search_20250305` with `max_uses: 3`
+on `claude-haiku-5-5`. The reply holds `server_tool_use`, `web_search_tool_result`, then `text`
+blocks whose `citations` are `web_search_result_location` (`url`, `title`, `cited_text`). A
+long turn can stop with `pause_turn`; send the assistant content back unchanged to continue.
+`user_location` is `{ type: "approximate", city?, region?, country?, timezone? }`.
+
+## OpenAI web search (brain without an Anthropic key, M4)
+
+| Topic    | Finding                                                                                                                                                                        |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Endpoint | `POST /v1/responses` with `tools: [{ type: "web_search", search_context_size, user_location, filters }]`. `tool_choice: "required"` forces a search.                           |
+| Reply    | `output[]` holds a `web_search_call` item, then a `message` whose `output_text` content has `annotations` of type `url_citation` (`url`, `title`, `start_index`, `end_index`). |
+| Model    | `gpt-6-luna` (fast, cheapest; supports web search in Responses). Reasoning effort `low`.                                                                                       |
+| Cost     | $10 per 1,000 searches plus search content tokens at model rates.                                                                                                              |
+
+Sources: [OpenAI web search guide](https://developers.openai.com/api/docs/guides/tools-web-search), [gpt-6-luna](https://developers.openai.com/docs/models/gpt-6-luna), [Pricing](https://developers.openai.com/api/docs/pricing).
+
 ## Wake word (local, M2)
 
 | Topic          | Finding                                                                                                                                                                       |

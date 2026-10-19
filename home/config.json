@@ -8,6 +8,10 @@
     "threshold": 0.5
   },
   "units": "metric",
+  "brain": {
+    "anthropicModel": "claude-haiku-5-5",
+    "openaiModel": "gpt-6-luna"
+  },
   "silenceTimeoutSeconds": 10,
   "sleepPhrases": ["that's all", "thanks, that's it", "go to sleep"]
 }

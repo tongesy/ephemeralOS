@@ -23,7 +23,8 @@ pnpm test         # vitest, all packages
   `PROTOCOL_VERSION` on incompatible changes.
 - `packages/gateway`: `config.ts` (env → config), `server.ts` (HTTP + WS), `static.ts`
   (serves the build and injects the token), `realtime/` (session config, instructions),
-  `tools/` (gateway-side tools such as `weather`; a tool can push a display to the page).
+  `tools/` (gateway-side tools such as `weather` and `search`; a tool can push a display to the
+  page), `brain/` (web-search answers from Claude or OpenAI, chosen by which key is set).
   Runs TypeScript directly via `tsx`; no build step.
 - `packages/web`: `main.ts` boots everything. `orb/` (shader, look table, state blend,
   placement in open space, springs),

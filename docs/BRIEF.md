@@ -20,6 +20,10 @@
 > - Live data starts with weather (M3): a gateway `weather` tool calls Open-Meteo (no key),
 >   speaks a summary and pushes the forecast table to the page. Other live data arrives with
 >   web search in M4.
+> - Quick web search (M4, first half): a synchronous gateway `search` tool for current facts
+>   (news, prices, scores). The brain, Claude when an Anthropic key is set and OpenAI
+>   otherwise, searches and replies with a line to speak and a short summary card with its
+>   sources. Delegated background jobs follow for longer research.
 > - The orb's edge and inner glow follow the live audio spectrum, in (microphone) and out
 >   (voice), not a generic ripple.
 > - API details marked [verify] were checked on 2026-10-19; see
