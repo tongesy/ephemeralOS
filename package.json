@@ -12,6 +12,7 @@
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "build": "pnpm -r run build",
+    "pack:npm": "node scripts/npm/pack.mjs",
     "start": "node packages/cli/bin/ephemeralos.mjs start",
     "typecheck": "pnpm -r run typecheck",
     "lint": "eslint .",
@@ -24,6 +25,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^22.19.0",
+    "esbuild": "0.28.2",
     "eslint": "^10.0.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.13.0",
