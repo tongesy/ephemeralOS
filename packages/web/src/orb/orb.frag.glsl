@@ -33,6 +33,7 @@ uniform float uRipple;
 uniform float uBreath;
 uniform float uPulse;
 uniform float uAura;
+uniform float uOpacity;     // how solid the plasma is; at rest the page shows through
 uniform float uSwirlPhase;  // integrated on the CPU so speed changes never jump; wraps at 2π
 uniform float uSwirl;       // current swirl speed: how much the centre leads the rim
 uniform float uFlowPhase;
@@ -199,7 +200,7 @@ void main() {
     float edgePx = (1.0 - r) / aa;
     plasma = mix(plasma, vec3(1.0), exp(-edgePx * 0.6) * 0.35);
 
-    color = mix(page, plasma, body);
+    color = mix(page, plasma, body * uOpacity);
   }
 
   color = linearToSrgb(clamp(color, 0.0, 1.0));

@@ -48,15 +48,19 @@ it. Each state is a row in the look table in [`orb/look.ts`](../packages/web/src
 
 | State       | Feel                                                                    |
 | ----------- | ----------------------------------------------------------------------- |
-| `zen`       | Cool fjord and glacier; barely moving; breathes slowly                  |
-| `listening` | Brighter azure; the edge ripples with your voice                        |
+| `zen`       | Small, faint and half see-through; barely moving; reads as asleep       |
+| `listening` | Swells to full size in bright azure; the edge ripples with your voice   |
 | `thinking`  | Heather and lilac; the plasma turns in a slow vortex                    |
 | `speaking`  | Warm coral, sand and rose; the core and its shells pulse with the voice |
 | `error`     | Muted clay and stone, nearly still; distinct but calm                   |
 
 To tune the look, edit the numbers in that table: the three `colors`, `intensity`, `warp`,
-`swirl`, `flow`, `ripple`, `breath`, `pulse` and `aura`. The shader blends between rows, so a
-change to one state never breaks a transition.
+`swirl`, `flow`, `ripple`, `breath`, `pulse`, `aura`, `size` and `opacity`. The shader blends
+between rows, so a change to one state never breaks a transition.
+
+Asleep and awake must never be confused. When the microphone opens after the wake word, the
+orb swells to `listening` and a soft rising chime plays (`audio/chime.ts`, synthesised); a
+falling chime marks going back to sleep. These are the only sounds ephemeralOS makes itself.
 
 ## Space
 

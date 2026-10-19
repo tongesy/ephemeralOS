@@ -22,6 +22,8 @@ export interface VoiceSessionDeps {
   speakFallback(text: string): void;
   /** Play and measure the voice's audio, or stop doing so (`null`). */
   audio(stream: MediaStream | null): void;
+  /** The microphone is open and the voice can hear: the moment to start talking. */
+  ready?(): void;
   /** The session ended, for whatever reason; the wake word can listen again. */
   ended(): void;
   settings: { silenceTimeoutSeconds: number; sleepPhrases: readonly string[] };
@@ -96,6 +98,7 @@ export class VoiceSession {
       this.link = link;
       this.phase = 'open';
       this.deps.setState('listening');
+      this.deps.ready?.();
       this.armSilence();
     } catch (error) {
       this.fail(error instanceof Error ? error.message : String(error));

@@ -26,30 +26,42 @@ export interface OrbLook {
   pulse: number;
   /** Strength of the coloured light the orb casts onto the page. */
   aura: number;
+  /** Size relative to the space the orb is given: small at rest, fuller when awake. */
+  size: number;
+  /** How solid the plasma is; at rest it is half see-through, so it reads as asleep. */
+  opacity: number;
 }
 
+/*
+ * Asleep and awake should never be confused: at rest the orb is small, faint and nearly
+ * still; once the microphone is open it swells, brightens and ripples with every sound.
+ */
 export const LOOKS: Record<OrbState, OrbLook> = {
   zen: {
     colors: [palette.fjord, palette.glacier, palette.lilac],
-    intensity: 0.45,
-    warp: 0.7,
-    swirl: 0.05,
-    flow: 0.07,
+    intensity: 0.3,
+    warp: 0.6,
+    swirl: 0.04,
+    flow: 0.05,
     ripple: 0,
-    breath: 0.02,
+    breath: 0.025,
     pulse: 0,
-    aura: 0.4,
+    aura: 0.18,
+    size: 0.7,
+    opacity: 0.42,
   },
   listening: {
     colors: [palette.azure, palette.glacier, palette.moss],
-    intensity: 0.85,
-    warp: 0.95,
-    swirl: 0.12,
-    flow: 0.22,
-    ripple: 1,
+    intensity: 1,
+    warp: 1,
+    swirl: 0.14,
+    flow: 0.26,
+    ripple: 1.4,
     breath: 0.006,
     pulse: 0,
-    aura: 0.65,
+    aura: 0.95,
+    size: 1.12,
+    opacity: 1,
   },
   thinking: {
     colors: [palette.heather, palette.lilac, palette.fjord],
@@ -61,17 +73,21 @@ export const LOOKS: Record<OrbState, OrbLook> = {
     breath: 0.008,
     pulse: 0,
     aura: 0.5,
+    size: 0.92,
+    opacity: 0.9,
   },
   speaking: {
     colors: [palette.coral, palette.sand, palette.rose],
-    intensity: 0.8,
-    warp: 0.95,
-    swirl: 0.18,
-    flow: 0.26,
+    intensity: 0.9,
+    warp: 1,
+    swirl: 0.2,
+    flow: 0.3,
     ripple: 0.15,
     breath: 0.004,
-    pulse: 1,
-    aura: 0.65,
+    pulse: 1.25,
+    aura: 0.85,
+    size: 1.15,
+    opacity: 1,
   },
   error: {
     colors: [palette.clay, '#D8CEC4', '#A79E96'],
@@ -83,6 +99,8 @@ export const LOOKS: Record<OrbState, OrbLook> = {
     breath: 0.012,
     pulse: 0,
     aura: 0.2,
+    size: 0.8,
+    opacity: 0.65,
   },
 };
 
@@ -97,6 +115,8 @@ export interface BlendedLook {
   breath: number;
   pulse: number;
   aura: number;
+  size: number;
+  opacity: number;
 }
 
 const NUMERIC = [
@@ -108,6 +128,8 @@ const NUMERIC = [
   'breath',
   'pulse',
   'aura',
+  'size',
+  'opacity',
 ] as const;
 
 const resolved = ORB_STATES.map((s) => ({
