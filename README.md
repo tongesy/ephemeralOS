@@ -58,7 +58,14 @@ The installer asks for your keys, then you start it:
 ephemeralos start       # http://localhost:4317
 ```
 
-Run the installer again to update. Or, from a clone, with Node 22.12+ and pnpm 10:
+Run the installer again to update. If you already have Node 22.12+, npm works too:
+
+```sh
+npx ephemeralos init
+npx ephemeralos start
+```
+
+Or, from a clone, with Node 22.12+ and pnpm 10:
 
 ```sh
 pnpm install
@@ -175,6 +182,10 @@ transcripts (`transcripts/YYYY-MM-DD.jsonl`) stay in `~/.ephemeralos/`.
 `pnpm check` runs formatting, lint, types, tests and the build: the same as CI. Conventions
 are in [`CLAUDE.md`](CLAUDE.md); design notes in [`docs/design.md`](docs/design.md); the
 performance budget and how to measure it in [`docs/performance.md`](docs/performance.md).
+
+To release, push a tag such as `v0.1.0`. The [Release workflow](.github/workflows/release.yml)
+publishes that version to npm as `ephemeralos`, using the repository's `NPM_TOKEN` secret.
+`pnpm pack:npm` builds the same package locally in `dist-npm/`.
 
 ## License
 
