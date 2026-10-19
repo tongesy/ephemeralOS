@@ -67,8 +67,12 @@ rm -rf "$DIR/app" && mv "$tmp_app" "$DIR/app"
 say "Installing dependencies and building"
 cd "$DIR/app"
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-corepack pnpm install --frozen-lockfile
-corepack pnpm build
+# A pnpm of the version the repo pins, for this script only: nothing global changes.
+mkdir -p "$DIR/shims"
+corepack enable --install-directory "$DIR/shims" pnpm
+export PATH="$DIR/shims:$PATH"
+pnpm install --frozen-lockfile
+pnpm build
 
 cat >"$BIN/ephemeralos" <<LAUNCHER
 #!/bin/sh
