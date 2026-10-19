@@ -57,6 +57,8 @@ export function renderChart(chart: Chart): HTMLElement {
   const n = chart.labels.length;
   const band = plotW / n;
   const cx = (i: number) => PAD.left + band * (i + 0.5);
+  // How far along the x axis a point is (0–1), for the left-to-right draw-in.
+  const at = (i: number) => (n > 1 ? i / (n - 1) : 0);
 
   const svg = el('svg', { viewBox: `0 0 ${WIDTH} ${HEIGHT}`, role: 'img' });
   svg.append(el('title', {}, chart.series.map((s) => s.name).join(', ')));
@@ -107,6 +109,9 @@ export function renderChart(chart: Chart): HTMLElement {
             height: Math.abs(y(v) - y(0)),
             rx: 3,
             fill: color,
+            class: v < 0 ? 'chart__bar chart__bar--negative' : 'chart__bar',
+            'data-at': at(i),
+            'data-series': s,
           }),
         );
       });
@@ -115,6 +120,7 @@ export function renderChart(chart: Chart): HTMLElement {
       svg.append(
         el('polyline', {
           points,
+          class: 'chart__line',
           fill: 'none',
           stroke: color,
           'stroke-width': 2,
@@ -131,6 +137,9 @@ export function renderChart(chart: Chart): HTMLElement {
             fill: palette.paper,
             stroke: color,
             'stroke-width': 2,
+            class: 'chart__point',
+            'data-at': at(i),
+            'data-series': s,
           }),
         ),
       );

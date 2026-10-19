@@ -172,7 +172,10 @@ async function startVoice(gateway: GatewayClient): Promise<void> {
         audio.attachOutput(audio.context.createMediaStreamSource(stream));
       } else audio.detachOutput();
     },
-    ended: () => wake?.listen(true),
+    ended: () => {
+      display.sessionEnded();
+      wake?.listen(true);
+    },
   });
   devTools?.setVoiceAvailable(true);
 
@@ -180,6 +183,7 @@ async function startVoice(gateway: GatewayClient): Promise<void> {
     clearTimeout(readyTimer);
     showHint(null);
     wake?.listen(false);
+    display.sessionStarted();
     void voice?.start();
   };
 

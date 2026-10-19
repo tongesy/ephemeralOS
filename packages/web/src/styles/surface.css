@@ -11,7 +11,8 @@
   transition:
     opacity var(--eos-duration-slow) var(--eos-ease-out),
     transform var(--eos-duration-slow) var(--eos-ease-out),
-    filter var(--eos-duration-slow) var(--eos-ease-out);
+    filter var(--eos-duration-slow) var(--eos-ease-out),
+    width var(--eos-duration) var(--eos-ease-out);
 }
 
 .surface[data-shown] {
@@ -236,4 +237,22 @@
 .chart__unit {
   margin-left: auto;
   font-family: var(--eos-font-mono);
+}
+
+/* Chart marks grow from where they stand: bars from the baseline, points from their centre. */
+.chart__bar,
+.chart__point {
+  transform-box: fill-box;
+}
+
+.chart__bar {
+  transform-origin: 50% 100%;
+}
+
+.chart__bar--negative {
+  transform-origin: 50% 0%;
+}
+
+.chart__point {
+  transform-origin: center;
 }

@@ -54,7 +54,8 @@ talking for ten seconds) to send it back to sleep.
 
 When something is easier to see than hear, it appears on the page: a card, a numbered list, a
 table or a chart. Say "open number two", "next", "back", "scroll down", "make it bigger" or
-"dismiss". Everything fades on its own after a minute or two. Ask "what's the weather this
+"dismiss". Everything fades on its own after a minute or two, and the screen clears soon after the
+conversation ends. Ask "what's the weather this
 week?" and you hear a short summary while the forecast appears as a table. Weather comes from
 [Open-Meteo](https://open-meteo.com), which needs no key; `init` asks where you are.
 
@@ -83,7 +84,7 @@ In development builds, the keyboard drives the orb so you can see every state:
 | <kbd>Space</kbd> / <kbd>→</kbd> / <kbd>←</kbd> | Next / previous state                                        |
 | <kbd>1</kbd>–<kbd>5</kbd>                      | Zen, listening, thinking, speaking, error                    |
 | <kbd>A</kbd>                                   | Voice preview: talking switches to listening (without a key) |
-| <kbd>D</kbd>                                   | Cycle demo displays: list, card, table, chart, then clear    |
+| <kbd>D</kbd>                                   | Cycle demo displays: list, card, table, update, chart, clear |
 | <kbd>P</kbd>                                   | Frame-time readout                                           |
 | <kbd>V</kbd>                                   | Toggle simulated voice output (without a key)                |
 | <kbd>W</kbd>                                   | Wake: start a voice session without saying the wake word     |

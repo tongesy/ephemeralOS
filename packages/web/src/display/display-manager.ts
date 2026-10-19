@@ -1,6 +1,7 @@
 import { ScreenArgs, parseDisplay, type ScreenAction } from '@ephemeralos/shared';
 import type { Rect } from '../orb/placement.ts';
 import { DisplayStack, type DisplayEntry } from './display-stack.ts';
+import { conceal, resize, reveal } from './motion.ts';
 import { describeItem, numberedItems, renderSurface } from './render.ts';
 
 /** What the model is told about the screen after each call. */
@@ -15,16 +16,24 @@ export interface ScreenSummary {
   [key: string]: unknown;
 }
 
+/** How long content lingers after a conversation ends before the screen clears. */
+const AFTER_SESSION_MS = 4000;
+
 /**
  * Owns the screen: one surface at a time fades in, the previous fades out, and the orb
- * is told which space is taken so it can glide into what's left. Surfaces fade on their
- * own after their TTL; any voice action on one restarts its clock.
+ * is told which space is taken so it can glide into what's left. An update to what is
+ * shown (same id) keeps the panel: the old content leaves, the panel eases to its new
+ * size and the new content cascades in. Surfaces fade on their own after their TTL, and
+ * everything clears shortly after the conversation ends.
  */
 export class DisplayManager {
   private readonly stack = new DisplayStack();
   private el: HTMLElement | null = null;
   private timer: ReturnType<typeof setTimeout> | undefined;
   private enlarged = false;
+  /** Bumped by every render, so a morph that is overtaken stops where it is. */
+  private generation = 0;
+  private sessionEnd: ReturnType<typeof setTimeout> | undefined;
 
   constructor(private readonly onLayout: (occupied: Rect[]) => void) {
     window.addEventListener('resize', () => this.reportLayout());
@@ -46,6 +55,21 @@ export class DisplayManager {
     const { action, index } = parsed.data;
     const result = this.act(action, index);
     return JSON.stringify({ ...result, ...this.summary() });
+  }
+
+  /** The conversation ended: let what's shown linger a moment, then clear the screen. */
+  sessionEnded(): void {
+    clearTimeout(this.sessionEnd);
+    if (!this.el) return;
+    this.sessionEnd = setTimeout(() => {
+      this.stack.clear();
+      this.clearSurface();
+    }, AFTER_SESSION_MS);
+  }
+
+  /** A conversation started again: keep what's shown. */
+  sessionStarted(): void {
+    clearTimeout(this.sessionEnd);
   }
 
   get hasContent(): boolean {
@@ -126,26 +150,44 @@ export class DisplayManager {
   }
 
   private render(entry: DisplayEntry, inPlace: boolean): void {
+    const generation = ++this.generation;
     const next = renderSurface(entry.request);
     next.dataset.key = entry.key;
     this.enlarged = false;
+    this.restartTimer(entry.ttlMs);
     const previous = this.el;
     if (inPlace && previous?.dataset.key === entry.key) {
-      // An update: swap the content without a fade, so live data doesn't flicker.
-      next.toggleAttribute('data-shown', true);
-      previous.replaceWith(next);
-    } else {
-      this.fadeOut(previous);
-      document.body.append(next);
-      requestAnimationFrame(() => next.toggleAttribute('data-shown', true));
+      void this.morph(previous, next, generation);
+      return;
     }
+    this.fadeOut(previous);
+    document.body.append(next);
     this.el = next;
-    this.restartTimer(entry.ttlMs);
-    requestAnimationFrame(() => this.reportLayout());
+    reveal(next, 140);
+    requestAnimationFrame(() => {
+      next.toggleAttribute('data-shown', true);
+      this.reportLayout();
+    });
+  }
+
+  /** Same panel, new content: out, ease to the new size, then cascade back in. */
+  private async morph(panel: HTMLElement, next: HTMLElement, generation: number): Promise<void> {
+    await conceal(panel);
+    if (generation !== this.generation) return;
+    const from = panel.getBoundingClientRect();
+    panel.className = next.className;
+    panel.removeAttribute('data-large');
+    panel.replaceChildren(...next.childNodes);
+    panel.scrollTop = 0;
+    this.reportLayout();
+    reveal(panel, 120);
+    await resize(panel, from);
   }
 
   private clearSurface(): void {
+    this.generation++;
     clearTimeout(this.timer);
+    clearTimeout(this.sessionEnd);
     this.fadeOut(this.el);
     this.el = null;
     this.enlarged = false;

@@ -17,6 +17,7 @@ export const DEMO_DISPLAYS: DisplayArgs[] = [
     body: 'Soft, fragrant and **best on the day**.\n\n- Warm the milk to body heat\n- Knead for *ten minutes*\n- Prove until doubled, about an hour',
   },
   {
+    id: 'weather',
     component: 'table',
     title: 'Copenhagen · next five days',
     columns: ['Day', 'Sky', 'High', 'Low', 'Rain'],
@@ -26,6 +27,22 @@ export const DEMO_DISPLAYS: DisplayArgs[] = [
       ['Wed', 'Clear', '15°', '6°', '0%'],
       ['Thu', 'Overcast', '13°', '9°', '20%'],
       ['Fri', 'Showers', '11°', '7°', '60%'],
+    ],
+  },
+  // Same id: the panel stays and its content changes, as when asking about another place.
+  {
+    id: 'weather',
+    component: 'table',
+    title: 'Aarhus · next seven days',
+    columns: ['Day', 'Sky', 'High', 'Low', 'Rain'],
+    rows: [
+      ['Mon', 'Overcast', '12°', '7°', '30%'],
+      ['Tue', 'Rain', '11°', '6°', '90%'],
+      ['Wed', 'Showers', '12°', '6°', '60%'],
+      ['Thu', 'Partly cloudy', '13°', '5°', '20%'],
+      ['Fri', 'Clear', '14°', '4°', '0%'],
+      ['Sat', 'Mostly clear', '13°', '5°', '10%'],
+      ['Sun', 'Light rain', '11°', '6°', '50%'],
     ],
   },
   {
