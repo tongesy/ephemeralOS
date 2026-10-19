@@ -273,3 +273,10 @@
     animation: none;
   }
 }
+
+/* A gallery whose photos all failed: one quiet line under the title. */
+.editorial__empty {
+  margin: var(--size-4) 0 0;
+  font-size: 0.9375rem;
+  color: var(--eos-stone);
+}

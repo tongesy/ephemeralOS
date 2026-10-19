@@ -51,6 +51,17 @@ export interface ImageCache {
   get(key: string): Promise<Image | null>;
 }
 
+/** Host and path, trimmed, for a log line. */
+function shortUrl(url: string): string {
+  try {
+    const { host, pathname } = new URL(url);
+    const path = pathname.length > 70 ? `…${pathname.slice(-70)}` : pathname;
+    return `${host}${path}`;
+  } catch {
+    return 'a malformed URL';
+  }
+}
+
 export function createImageCache(options: ImageCacheOptions): ImageCache {
   const misses = new Map<string, number>();
   const inFlight = new Map<string, Promise<Uint8Array | null>>();
@@ -65,15 +76,23 @@ export function createImageCache(options: ImageCacheOptions): ImageCache {
   }
 
   async function download(url: string): Promise<Uint8Array | null> {
+    // Why a picture didn't come, said plainly, so a missing one can be diagnosed.
+    const why = (reason: string) => {
+      console.info(`[${options.label}] ${reason}: ${shortUrl(url)}`);
+      return null;
+    };
     try {
       const res = await options.fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
-      if (!res.ok) return null;
-      if (Number(res.headers.get('content-length') ?? 0) > options.maxBytes) return null;
+      if (!res.ok) return why(`answered ${res.status}`);
+      if (Number(res.headers.get('content-length') ?? 0) > options.maxBytes) {
+        return why('too large');
+      }
       const bytes = new Uint8Array(await res.arrayBuffer());
-      const sized = bytes.length > options.minBytes && bytes.length <= options.maxBytes;
-      return sized && sniffImage(bytes) ? bytes : null;
-    } catch {
-      return null;
+      if (bytes.length <= options.minBytes) return why(`too small (${bytes.length} bytes)`);
+      if (bytes.length > options.maxBytes) return why('too large');
+      return sniffImage(bytes) ? bytes : why('not an image');
+    } catch (error) {
+      return why(error instanceof Error ? error.name : 'failed');
     }
   }
 

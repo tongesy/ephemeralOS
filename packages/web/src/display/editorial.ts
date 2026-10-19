@@ -7,6 +7,9 @@ import { renderMarkdown } from './markdown.ts';
  * a time, full screen, drifting slowly (Ken Burns) and moving on by itself, or on "next".
  */
 
+/** Fired on a surface whose shape changed by itself (its photos failed), so it is re-measured. */
+export const LAYOUT_CHANGED = 'eos-layout';
+
 /** How long each slide holds before the next fades in. */
 const SLIDE_MS = 6500;
 
@@ -76,15 +79,27 @@ export function renderGallery(
   images: GalleryImage[],
   slideshow: boolean,
 ): void {
+  const stage = element('div', slideshow ? 'editorial__slides' : 'editorial__mosaic');
   const frames = images.flatMap((image) => {
     const url = pictureUrl({ photo: image.photo, imageUrl: image.image_url });
     if (!url) return [];
     const figure = element('figure', 'editorial__frame');
-    figure.append(photo(url, image.caption ?? image.photo ?? '', () => figure.remove()));
+    figure.append(
+      photo(url, image.caption ?? image.photo ?? '', () => {
+        console.warn(`[display] photo didn't load: ${image.photo ?? 'an image'}`);
+        figure.remove();
+        stage.dataset.count = String(stage.children.length);
+        if (stage.children.length) return;
+        // None came: say so quietly rather than leave an empty page under the title.
+        const empty = element('p', 'editorial__empty', "The photos couldn't be loaded.");
+        empty.dataset.occupies = '';
+        stage.replaceWith(empty);
+        section.dispatchEvent(new Event(LAYOUT_CHANGED, { bubbles: true }));
+      }),
+    );
     if (image.caption) figure.append(element('figcaption', 'editorial__caption', image.caption));
     return [figure];
   });
-  const stage = element('div', slideshow ? 'editorial__slides' : 'editorial__mosaic');
   stage.dataset.count = String(frames.length);
   stage.append(...frames);
   if (!slideshow) stage.dataset.occupies = '';

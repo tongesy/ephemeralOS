@@ -80,7 +80,13 @@ export function createPhotoService(options: {
       const res = await identified(`https://en.wikipedia.org/api/rest_v1/page/summary/${page}`, {
         signal: AbortSignal.timeout(5000),
       });
-      return res.ok ? photoSources(await res.json()) : [];
+      if (!res.ok) {
+        console.info(`[photos] Wikipedia answered ${res.status} for "${title}"`);
+        return [];
+      }
+      const sources = photoSources(await res.json());
+      if (!sources.length) console.info(`[photos] Wikipedia has no photo for "${title}"`);
+      return sources;
     },
   });
   return {
