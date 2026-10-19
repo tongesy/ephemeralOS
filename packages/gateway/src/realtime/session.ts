@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto';
 import {
   DISPLAY_TOOL_DESCRIPTION,
   DisplayArgs,
+  MEDIA_TOOL_DESCRIPTION,
+  MediaArgs,
   SCREEN_TOOL_DESCRIPTION,
   ScreenArgs,
   toolParameters,
@@ -31,6 +33,12 @@ export const CLIENT_TOOLS: RealtimeFunction[] = [
     name: 'screen',
     description: SCREEN_TOOL_DESCRIPTION,
     parameters: toolParameters(ScreenArgs),
+  },
+  {
+    type: 'function',
+    name: 'media',
+    description: MEDIA_TOOL_DESCRIPTION,
+    parameters: toolParameters(MediaArgs),
   },
   {
     type: 'function',

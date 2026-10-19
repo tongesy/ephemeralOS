@@ -22,6 +22,9 @@ export interface LevelsSnapshot {
   spectrumOut: Float32Array;
 }
 
+/** How strongly the orb follows a podcast or music, relative to its own voice. */
+const MEDIA_LEVEL = 0.55;
+
 /** Microphone constraints from the brief; far-field use benefits from a USB speakerphone. */
 export const MIC_CONSTRAINTS: MediaStreamConstraints = {
   audio: {
@@ -84,6 +87,9 @@ export class AudioLevels {
   private input: Channel | null = null;
   private output: Channel | null = null;
   private outputSource: AudioNode | null = null;
+  /** Something playing (a podcast), measured when the voice is quiet. */
+  private media: Channel | null = null;
+  private mediaSource: AudioNode | null = null;
   private readonly bandEnvs = [0, 1, 2, 3].map(() => new Envelope(30, 200));
   private readonly bandsRaw = new Float32Array(4);
 
@@ -119,6 +125,14 @@ export class AudioLevels {
     this.output = null;
   }
 
+  /** Measure what is playing (a podcast), or stop (`null`). The orb moves to it gently. */
+  attachMedia(node: AudioNode | null): void {
+    if (this.mediaSource && this.media) this.mediaSource.disconnect(this.media.analyser);
+    this.mediaSource = node;
+    this.media = node ? new Channel(this.context, 40, 260) : null;
+    if (node && this.media) node.connect(this.media.analyser);
+  }
+
   /** Read the analysers and smooth the results. Call once per animation frame. */
   update(dtMs: number): LevelsSnapshot {
     const snap = this.snapshot;
@@ -132,6 +146,14 @@ export class AudioLevels {
       toBands(freq, this.output.binHz, this.bandsRaw);
       snap.output = this.output.level.value;
       snap.spectrumOut.set(this.output.spectrum.values);
+    } else if (this.media) {
+      // The voice is quiet: the orb sways to what is playing, at a lower level.
+      const freq = this.media.update(dtMs);
+      toBands(freq, this.media.binHz, this.bandsRaw);
+      for (let b = 0; b < 4; b++) this.bandsRaw[b]! *= MEDIA_LEVEL;
+      snap.output = this.media.level.value * MEDIA_LEVEL;
+      const spectrum = this.media.spectrum.values;
+      for (let i = 0; i < spectrum.length; i++) snap.spectrumOut[i] = spectrum[i]! * MEDIA_LEVEL;
     } else {
       // Nothing playing yet: start each frame from silence (dev tools may simulate output).
       snap.output = 0;

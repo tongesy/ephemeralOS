@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import type { ServerResponse } from 'node:http';
 import { extname, join, normalize, sep } from 'node:path';
-import { TOKEN_META_NAME } from '@ephemeralos/shared';
+import { TOKEN_META_NAME, YOUTUBE_EMBED_ORIGIN } from '@ephemeralos/shared';
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -29,6 +29,8 @@ const CSP = [
   // https images only for logos and photos in displays (loaded with no referrer).
   "img-src 'self' data: blob: https:",
   "connect-src 'self' https://api.openai.com",
+  // Videos play in YouTube's privacy-enhanced player, and nothing else is framed.
+  `frame-src ${YOUTUBE_EMBED_ORIGIN}`,
   "object-src 'none'",
   "base-uri 'none'",
   "frame-ancestors 'none'",

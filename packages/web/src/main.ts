@@ -4,12 +4,15 @@ import './styles/tokens.css';
 import './styles/base.css';
 import './styles/surface.css';
 import './styles/editorial.css';
+import './styles/media.css';
 
 import { AudioLevels } from './audio/audio-levels.ts';
 import { playChime } from './audio/chime.ts';
 import type { DevTools } from './dev/dev-tools.ts';
 import { DisplayManager } from './display/display-manager.ts';
 import { GatewayClient } from './gateway-client.ts';
+import { MediaPlayer } from './media/media-player.ts';
+import type { Rect } from './orb/placement.ts';
 import { connectRealtime } from './voice/realtime-client.ts';
 import { VoiceSession } from './voice/voice-session.ts';
 import { WakeWord } from './wake/wake-word.ts';
@@ -44,21 +47,41 @@ if (new URLSearchParams(location.search).has('perf')) perf.toggle(true);
 
 let voice: VoiceSession | null = null;
 
+// The orb keeps clear of both what is shown and what is playing.
+let shownRects: Rect[] = [];
+let playingRects: Rect[] = [];
+const occupy = (): void => orb.setOccupied([...shownRects, ...playingRects]);
+
+/** What is playing (a podcast, a video); it carries on after the conversation ends. */
+const media = new MediaPlayer({
+  context: audio.context,
+  measure: (node) => audio.attachMedia(node),
+  onLayout: (occupied) => {
+    playingRects = occupied;
+    occupy();
+  },
+});
+
 /** The screen: content fades in and out; the orb moves into whatever space is left. */
 const display = new DisplayManager(
-  (occupied) => orb.setOccupied(occupied),
+  (occupied) => {
+    shownRects = occupied;
+    media.setScreenBusy(occupied.length > 0);
+    occupy();
+  },
   (scene) => backdrop.set(scene),
 );
 
 /** Tools the voice model calls that act on this page directly. */
 function localTool(name: string, args: string): string | null {
-  if (name !== 'display' && name !== 'screen') return null;
+  if (name !== 'display' && name !== 'screen' && name !== 'media') return null;
   let parsed: unknown;
   try {
     parsed = JSON.parse(args || '{}');
   } catch {
     return JSON.stringify({ error: 'Arguments were not valid JSON' });
   }
+  if (name === 'media') return media.act(parsed);
   return name === 'display' ? display.display(parsed) : display.screen(parsed);
 }
 
@@ -130,6 +153,7 @@ if (gateway) {
     if (msg.type === 'welcome') console.info(`[gateway] connected, protocol ${msg.protocol}`);
     // The gateway can put things on screen too (a forecast, and from M4 the brain's results).
     if (msg.type === 'display') display.display(msg.args);
+    if (msg.type === 'media') media.play(msg.item);
   });
   gateway.connect();
 } else {
@@ -192,6 +216,7 @@ async function startVoice(gateway: GatewayClient): Promise<void> {
     ended: () => {
       playChime(audio.context, 'close');
       display.sessionEnded();
+      media.setConversing(false);
       wake?.listen(true);
     },
   });
@@ -202,6 +227,8 @@ async function startVoice(gateway: GatewayClient): Promise<void> {
     showHint(null);
     wake?.listen(false);
     display.sessionStarted();
+    // Whatever is playing drops to a murmur at once, so the microphone hears you.
+    media.setConversing(true);
     void voice?.start();
   };
 

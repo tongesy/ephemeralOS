@@ -82,6 +82,26 @@ Sources: [logo.dev images](https://www.logo.dev/docs/logo-images/get), [logo.dev
 | Etiquette | Wikimedia blocks generic clients: requests send `User-Agent: ephemeralOS (https://github.com/tongesy/ephemeralOS)`.                     |
 | Unchecked | Field names are from memory and secondary docs; the live API wasn't reachable from the build sandbox. Re-check against a real response. |
 
+## Podcasts and YouTube (media, M4)
+
+Checked 2026-10-19 against the documentation and forum answers below. The gateway can't reach
+Apple from the build container, so the episode fields come from those sources and the tests
+use recorded shapes; re-check against a live response.
+
+| Topic          | Finding                                                                                                                                                                                                                                                        |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Podcast search | `GET https://itunes.apple.com/search?term=…&media=podcast&entity=podcast` returns `results[]` with `collectionId`, `collectionName`, `artistName`, `artworkUrl600`. No key.                                                                                    |
+| Episodes       | `GET https://itunes.apple.com/lookup?id=<collectionId>&media=podcast&entity=podcastEpisode&limit=50`: the show first, then episodes with `trackName`, `episodeUrl` (the audio file), `releaseDate`, `trackTimeMillis`. Not sorted; sort by `releaseDate`.      |
+| Artwork        | On `is<n>-ssl.mzstatic.com`; the gateway fetches only from those hosts.                                                                                                                                                                                        |
+| YouTube check  | `GET https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=<id>&format=json` returns `title` and `author_name`; 401 when the owner disabled embedding, 404 when there is no such video. No key.                                                   |
+| Embed          | `https://www.youtube-nocookie.com/embed/<id>?enablejsapi=1&autoplay=1…`. The player needs a referrer: a `Referrer-Policy` that strips it (our page sends `no-referrer`) gives error 153, so the frame sets `referrerpolicy="strict-origin-when-cross-origin"`. |
+| Control        | With `enablejsapi=1` the frame takes `postMessage` commands (`{"event":"command","func":"pauseVideo","args":[]}`) and, after `{"event":"listening"}`, reports `onStateChange` and `infoDelivery` (`playerState`, `currentTime`, `duration`).                   |
+| Posters        | `https://i.ytimg.com/vi/<id>/maxresdefault.jpg` (not always present; then `sddefault`, `hqdefault`).                                                                                                                                                           |
+
+Sources: [Lookup episodes with the iTunes API](https://developer.apple.com/forums/thread/654141),
+[iTunes Search API](https://performance-partners.apple.com/resources/documentation/itunes-store-web-service-search-api/),
+[YouTube error 153](https://til.simonwillison.net/youtube/fixing-153-embed).
+
 ## Wake word (local, M2)
 
 | Topic          | Finding                                                                                                                                                                       |

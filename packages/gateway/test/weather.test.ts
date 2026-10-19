@@ -49,10 +49,10 @@ describe('weather tool', () => {
       fetch: fetchMock as unknown as typeof fetch,
     });
     const shown: unknown[] = [];
-    const result = (await tool.run({ days: 3 }, { display: (a) => shown.push(a) })) as Record<
-      string,
-      unknown
-    >;
+    const result = (await tool.run(
+      { days: 3 },
+      { display: (a) => shown.push(a), media: () => {} },
+    )) as Record<string, unknown>;
 
     expect(String(fetchMock.mock.calls[0]![0])).toContain('name=Copenhagen');
     const forecastUrl = String(fetchMock.mock.calls[1]![0]);
@@ -95,7 +95,7 @@ describe('weather tool', () => {
       homeDir: await home({}),
       fetch: empty as unknown as typeof fetch,
     });
-    const ctx = { display: () => {} };
+    const ctx = { display: () => {}, media: () => {} };
     expect(await tool.run({}, ctx)).toMatchObject({
       error: expect.stringContaining('Ask the user'),
     });
@@ -127,7 +127,10 @@ describe('weather tool', () => {
       homeDir: await home({}),
       fetch: fetchMock as unknown as typeof fetch,
     });
-    const result = await tool.run({ location: 'Perth, UK', days: '3' }, { display: () => {} });
+    const result = await tool.run(
+      { location: 'Perth, UK', days: '3' },
+      { display: () => {}, media: () => {} },
+    );
     expect(String(fetchMock.mock.calls[0]![0])).toContain('name=Perth&');
     expect(result).toMatchObject({ place: 'Perth, Scotland, United Kingdom' });
   });
@@ -138,7 +141,7 @@ describe('weather tool', () => {
       homeDir: await home({ units: 'imperial' }),
       fetch: fetchMock as unknown as typeof fetch,
     });
-    await tool.run({ location: 'Austin' }, { display: () => {} });
+    await tool.run({ location: 'Austin' }, { display: () => {}, media: () => {} });
     expect(String(fetchMock.mock.calls[1]![0])).toContain('temperature_unit=fahrenheit');
   });
 

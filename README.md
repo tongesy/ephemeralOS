@@ -85,6 +85,11 @@ conversation ends. Ask "what's the weather this
 week?" and you hear a short summary while the forecast appears as a table. Weather comes from
 [Open-Meteo](https://open-meteo.com), which needs no key; `init` asks where you are.
 
+Say "play the latest episode of The Daily", "play Clair de Lune" or "show me the Dune
+trailer" and it plays on the page: podcasts from Apple's directory, videos and music from
+YouTube (privacy-enhanced, no cookies). Wake it to pause, skip ahead a minute, go back, make
+it louder or stop; while you talk it plays quietly underneath.
+
 For anything current, such as the news, prices or scores, the orb searches the web. It says a
 line or two and shows what it found in whatever layout fits: a league table with club logos,
 a list of headlines, a price chart, a full-screen photo with the headline set over it, or a

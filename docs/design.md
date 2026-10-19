@@ -108,6 +108,24 @@ second. With `prefers-reduced-motion`, everything moves at 30% and lightning is 
 The weather is drawn on its own canvas beneath everything; the orb has a transparent canvas
 above it all, so it is never hidden by a picture.
 
+## What is playing
+
+Ask for a podcast, a song or a video and it plays on the page
+([`media/media-player.ts`](../packages/web/src/media/media-player.ts),
+[`styles/media.css`](../packages/web/src/styles/media.css)):
+
+- **A podcast** arrives as a glass card beside the orb: the show's artwork large and square,
+  the show in small capitals, the episode title, its date and length, and a hairline of
+  progress with the time in Geist Mono. After twenty seconds on its own it settles into a
+  small player in the bottom-left corner (artwork, title, progress), and it comes forward
+  again while you talk about it. The orb sways gently to the sound.
+- **A video or a piece of music** plays in a wide rounded screen, YouTube's poster first;
+  the player fades in over it once the video is actually playing. It stays large while you
+  watch, and glides into the corner when something else is shown.
+- While a conversation is open, whatever is playing drops to 12% at once and comes back up
+  gently afterwards, so the microphone hears you and you can still follow it. Paused, the
+  progress line goes grey and the time breathes slowly; paused for ten minutes, it goes.
+
 ## Editorial layouts
 
 When a picture tells it best, a surface is laid out like a magazine spread rather than a

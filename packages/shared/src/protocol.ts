@@ -1,7 +1,8 @@
 import { z } from 'zod';
+import { MediaItem } from './media.ts';
 
 /** Bumped whenever the browser ⇄ gateway wire format changes incompatibly. */
-export const PROTOCOL_VERSION = 3;
+export const PROTOCOL_VERSION = 4;
 
 /** Path the gateway serves its WebSocket on. */
 export const WS_PATH = '/ws';
@@ -81,12 +82,19 @@ export const ServerDisplay = z.object({
   args: z.unknown(),
 });
 
+/** Start playing something the gateway found and checked (a podcast episode, a video). */
+export const ServerMedia = z.object({
+  type: z.literal('media'),
+  item: MediaItem,
+});
+
 export const ServerMessage = z.discriminatedUnion('type', [
   ServerWelcome,
   ServerPong,
   ServerError,
   ServerToolResult,
   ServerDisplay,
+  ServerMedia,
 ]);
 export type ServerMessage = z.infer<typeof ServerMessage>;
 

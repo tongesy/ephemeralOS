@@ -4,9 +4,12 @@ import { join, resolve } from 'node:path';
 import { WebSocketServer, type WebSocket } from 'ws';
 import {
   ClientMessage,
+  ARTWORK_PATH,
   LOGOS_PATH,
+  MEDIA_PATH,
   MODELS_PATH,
   PHOTOS_PATH,
+  POSTERS_PATH,
   PROTOCOL_VERSION,
   TOKEN_HEADER,
   WS_PATH,
@@ -19,6 +22,9 @@ import { allowedHosts, sendJson, tokensMatch } from './http.ts';
 import { serveImage } from './images/image-cache.ts';
 import { createLogoService } from './images/logos.ts';
 import { createPhotoService } from './images/photos.ts';
+import { createArtworkService } from './media/artwork.ts';
+import { MediaRelay } from './media/relay.ts';
+import { createPosterService } from './media/youtube.ts';
 import { serveStatic } from './static.ts';
 import { defaultTools } from './tools/index.ts';
 import type { ToolRegistry } from './tools/registry.ts';
@@ -29,6 +35,8 @@ export interface GatewayOptions extends GatewayConfig {
   tools?: ToolRegistry;
   /** Injected in tests; defaults to the global fetch. */
   fetch?: typeof fetch;
+  /** Injected in tests; relays podcast audio (and is where `play` registers it). */
+  relay?: MediaRelay;
 }
 
 export interface Gateway {
@@ -52,10 +60,14 @@ const CONNECT_ATTEMPT_MS = 1000;
 export async function startGateway(config: GatewayOptions): Promise<Gateway> {
   setDefaultAutoSelectFamilyAttemptTimeout(CONNECT_ATTEMPT_MS);
   const webRoot = config.webRoot ? resolve(config.webRoot) : null;
-  const tools = config.tools ?? defaultTools({ homeDir: config.homeDir, fetch: config.fetch });
+  const relay = config.relay ?? new MediaRelay();
+  const tools =
+    config.tools ?? defaultTools({ homeDir: config.homeDir, fetch: config.fetch, relay });
   const api = { homeDir: config.homeDir, tools, fetch: config.fetch };
   const logos = createLogoService({ homeDir: config.homeDir, fetch: config.fetch });
   const photos = createPhotoService({ homeDir: config.homeDir, fetch: config.fetch });
+  const posters = createPosterService({ homeDir: config.homeDir, fetch: config.fetch });
+  const artwork = createArtworkService({ homeDir: config.homeDir, fetch: config.fetch });
 
   const port = (): number => (server.address() as AddressInfo).port;
   const origins = (): Set<string> =>
@@ -100,6 +112,21 @@ export async function startGateway(config: GatewayOptions): Promise<Gateway> {
     }
     if (req.method === 'GET' && path.startsWith(PHOTOS_PATH)) {
       void serveImage(photos.get, req, path.slice(PHOTOS_PATH.length), res);
+      return;
+    }
+    if (req.method === 'GET' && path.startsWith(POSTERS_PATH)) {
+      void serveImage(posters.get, req, path.slice(POSTERS_PATH.length), res);
+      return;
+    }
+    if (req.method === 'GET' && path.startsWith(ARTWORK_PATH)) {
+      void serveImage(artwork.get, req, path.slice(ARTWORK_PATH.length), res);
+      return;
+    }
+    if (req.method === 'GET' && path.startsWith(MEDIA_PATH)) {
+      relay.serve(req, path.slice(MEDIA_PATH.length), res).catch((error: unknown) => {
+        console.warn('[media]', error);
+        if (!res.headersSent) res.writeHead(500).end();
+      });
       return;
     }
     if (webRoot && (req.method === 'GET' || req.method === 'HEAD')) {
@@ -162,6 +189,9 @@ export async function startGateway(config: GatewayOptions): Promise<Gateway> {
             .call(msg.name, msg.arguments, {
               display: (args) => {
                 if (ws.readyState === ws.OPEN) send(ws, { type: 'display', args });
+              },
+              media: (item) => {
+                if (ws.readyState === ws.OPEN) send(ws, { type: 'media', item });
               },
             })
             .then((output) => {
