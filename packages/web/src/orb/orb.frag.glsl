@@ -33,7 +33,8 @@ uniform float uRipple;
 uniform float uBreath;
 uniform float uPulse;
 uniform float uAura;
-uniform float uSwirlPhase;  // integrated on the CPU so speed changes never jump
+uniform float uSwirlPhase;  // integrated on the CPU so speed changes never jump; wraps at 2π
+uniform float uSwirl;       // current swirl speed: how much the centre leads the rim
 uniform float uFlowPhase;
 
 // --- Noise -----------------------------------------------------------------
@@ -153,7 +154,9 @@ void main() {
     // Curve the plane onto a sphere so the plasma reads as a volume.
     float z = sqrt(max(1.0 - dot(q, q), 0.0));
     vec2 s = q * (1.3 - 0.4 * z);
-    s = rotate(uSwirlPhase * (1.1 - 0.6 * length(s))) * s;
+    // The whole field turns by the phase; the twist (centre ahead of the rim) follows the
+    // current speed, never the phase, or the plasma winds into a tight spiral over time.
+    s = rotate(uSwirlPhase + uSwirl * (1.2 - 2.0 * length(s))) * s;
 
     // --- Plasma: large, slow fields of colour, gently folded by a warp --------
     vec3 P = vec3(s * 0.75, uFlowPhase);

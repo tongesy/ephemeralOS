@@ -88,6 +88,7 @@ export class Orb {
         uPulse: { value: 0 },
         uAura: { value: 0 },
         uSwirlPhase: { value: 0 },
+        uSwirl: { value: 0 },
         uFlowPhase: { value: 0 },
       },
     });
@@ -150,7 +151,7 @@ export class Orb {
     blendLook(weights, this.look);
 
     this.time += dt * this.motion;
-    this.swirlPhase += dt * this.look.swirl * this.motion;
+    this.swirlPhase = (this.swirlPhase + dt * this.look.swirl * this.motion) % (2 * Math.PI);
     this.flowPhase += dt * this.look.flow * this.motion;
 
     // CSS pixels (top-left origin) → drawing-buffer pixels (bottom-left origin).
@@ -175,6 +176,7 @@ export class Orb {
     u.uBreath!.value = this.look.breath * this.motion;
     u.uPulse!.value = this.look.pulse * (0.4 + 0.6 * this.motion);
     u.uSwirlPhase!.value = this.swirlPhase;
+    u.uSwirl!.value = this.look.swirl * this.motion;
     u.uFlowPhase!.value = this.flowPhase;
 
     this.renderer.render(this.scene, this.camera);
