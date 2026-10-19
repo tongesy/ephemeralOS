@@ -14,6 +14,11 @@ or under 16.7 ms.
   fields, one for the edge ripple). Nothing loops on screen size.
 - **Full-density rendering.** The orb renders at the display's pixel ratio (up to 3×) so it
   stays crisp; it is small, and pixels away from it only compute the aura.
+- **Weather at half resolution.** A weather scene renders at half the CSS resolution into
+  a half-float texture (value noise, fixed layers, no loops over screen size), and the orb
+  pass reads it as its page with one texture sample. Raindrops on the glass are computed at
+  full resolution from two grids of cells, a handful of operations per pixel. With no
+  weather shown, the scene pass is skipped entirely.
 - **Adaptive resolution.** [`QualityGovernor`](../packages/web/src/perf/frame-meter.ts) drops
   the render scale in 0.25 steps after 1.5 s of slow frames and climbs back after 5 s of
   headroom, but never below 1× (one buffer pixel per CSS pixel), so it never looks blurry.

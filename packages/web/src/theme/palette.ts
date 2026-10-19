@@ -31,6 +31,31 @@ export const palette = {
 
 export type PaletteColor = keyof typeof palette;
 
+/**
+ * The skies the page turns into for the weather, top of the screen then horizon. Soft and
+ * a little desaturated, so glass cards and the orb still sit naturally on top.
+ */
+export const skyPalette = {
+  dayTop: '#7FAFD6',
+  dayHorizon: '#DCE9F2',
+  overcastTop: '#9AA6B1',
+  overcastHorizon: '#D9DDE0',
+  stormTop: '#4E5966',
+  stormHorizon: '#8F9AA3',
+  nightTop: '#0E1A2E',
+  nightHorizon: '#2C3E5C',
+  nightOvercastTop: '#141A22',
+  nightOvercastHorizon: '#2A323C',
+  fog: '#E4E6E6',
+  nightFog: '#3A424B',
+  sun: '#FFE6B8',
+  moon: '#E6ECF5',
+  cloud: '#FAFBFC',
+  cloudShade: '#B8C1C9',
+  nightCloud: '#323B48',
+  nightCloudShade: '#161B23',
+} as const;
+
 /** Series order for charts, chosen to stay distinguishable on paper. */
 export const seriesColors = [
   palette.fjord,

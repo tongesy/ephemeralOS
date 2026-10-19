@@ -1,4 +1,4 @@
-import type { OrbState } from '@ephemeralos/shared';
+import type { OrbState, Scene as PageScene } from '@ephemeralos/shared';
 import {
   Color,
   Mesh,
@@ -13,6 +13,7 @@ import {
 } from 'three';
 import type { LevelsSnapshot } from '../audio/audio-levels.ts';
 import { SPECTRUM_SIZE } from '../audio/envelope.ts';
+import { Backdrop } from '../scene/backdrop.ts';
 import { palette } from '../theme/palette.ts';
 import { blendLook, createBlendedLook } from './look.ts';
 import { openSpacePlacement, type Rect } from './placement.ts';
@@ -34,6 +35,7 @@ export class Orb {
   private readonly camera = new OrthographicCamera(-1, 1, 1, -1, 0, 1);
   private readonly material: ShaderMaterial;
   private readonly look = createBlendedLook();
+  private readonly backdrop: Backdrop;
   private readonly motion: number;
 
   /** Placement in CSS pixels; eased so the orb glides between open spaces. */
@@ -49,6 +51,7 @@ export class Orb {
 
   constructor(canvas: HTMLCanvasElement, options: OrbOptions) {
     this.motion = options.reducedMotion ? 0.3 : 1;
+    this.backdrop = new Backdrop(this.motion);
 
     this.renderer = new WebGLRenderer({
       canvas,
@@ -88,6 +91,9 @@ export class Orb {
         uPulse: { value: 0 },
         uAura: { value: 0 },
         uOpacity: { value: 1 },
+        uScene: { value: this.backdrop.texture },
+        uSceneMix: { value: 0 },
+        uDrops: { value: 0 },
         uSwirlPhase: { value: 0 },
         uSwirl: { value: 0 },
         uFlowPhase: { value: 0 },
@@ -130,6 +136,11 @@ export class Orb {
     this.radius.target = target.radius;
   }
 
+  /** Turn the page into a scene (the weather outside), or back to paper with `null`. */
+  setScene(scene: PageScene | null): void {
+    this.backdrop.set(scene);
+  }
+
   /** Render scale relative to CSS pixels; lowered by the quality governor when frames run long. */
   setPixelRatio(ratio: number): void {
     this.pixelRatio = ratio;
@@ -140,6 +151,7 @@ export class Orb {
     const { innerWidth: w, innerHeight: h } = window;
     this.renderer.setPixelRatio(this.pixelRatio);
     this.renderer.setSize(w, h, true);
+    this.backdrop.setSize(w, h);
     const size = this.renderer.getDrawingBufferSize(new Vector2());
     this.material.uniforms.uResolution!.value.copy(size);
     this.retarget();
@@ -181,10 +193,16 @@ export class Orb {
     u.uSwirl!.value = this.look.swirl * this.motion;
     u.uFlowPhase!.value = this.flowPhase;
 
+    this.backdrop.update(dtMs);
+    this.backdrop.render(this.renderer);
+    u.uSceneMix!.value = this.backdrop.mix;
+    u.uDrops!.value = this.backdrop.current.drops * this.motion;
+
     this.renderer.render(this.scene, this.camera);
   }
 
   dispose(): void {
+    this.backdrop.dispose();
     this.material.dispose();
     this.renderer.dispose();
   }

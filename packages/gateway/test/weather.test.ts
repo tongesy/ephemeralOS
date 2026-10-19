@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { parseDisplay } from '@ephemeralos/shared';
-import { createWeatherTool, describeSky } from '../src/tools/weather.ts';
+import { createWeatherTool, weatherScene, describeSky } from '../src/tools/weather.ts';
 
 const GEO = {
   results: [
@@ -17,7 +17,7 @@ const GEO = {
   ],
 };
 const FORECAST = {
-  current: { temperature_2m: 11.4, weather_code: 2 },
+  current: { temperature_2m: 11.4, weather_code: 2, is_day: 1, wind_speed_10m: 18 },
   daily: {
     time: ['2026-10-19', '2026-10-20', '2026-10-21'],
     weather_code: [2, 61, 0],
@@ -84,6 +84,7 @@ describe('weather tool', () => {
       ],
       row_icons: ['cloud-sun', 'cloud-rain', 'sun'],
       icon_column: 1,
+      scene: { kind: 'weather', sky: 'partly-cloudy', intensity: 0.55, day: true, wind: 0.3 },
     });
     expect((result.days as object[])[0]).not.toHaveProperty('icon');
   });
@@ -144,5 +145,20 @@ describe('weather tool', () => {
   it('names weather codes in plain words', () => {
     expect(describeSky(95)).toBe('Thunderstorms');
     expect(describeSky(1234)).toBe('Mixed');
+  });
+});
+
+describe('weatherScene', () => {
+  it('turns WMO codes into a sky and how heavy it is', () => {
+    expect(weatherScene(65, false, 90)).toEqual({
+      kind: 'weather',
+      sky: 'rain',
+      intensity: 0.95,
+      day: false,
+      wind: 1,
+    });
+    expect(weatherScene(75, true).sky).toBe('snow');
+    expect(weatherScene(99, true).sky).toBe('thunder');
+    expect(weatherScene(45, true).sky).toBe('fog');
   });
 });

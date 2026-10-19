@@ -94,6 +94,32 @@ export const Chart = z.object({
 });
 export type Chart = z.infer<typeof Chart>;
 
+export const SKIES = [
+  'clear',
+  'partly-cloudy',
+  'cloudy',
+  'fog',
+  'rain',
+  'snow',
+  'thunder',
+] as const;
+export type Sky = (typeof SKIES)[number];
+
+/**
+ * The world behind a surface: the page itself becomes the weather outside right now (rain
+ * on the glass, drifting snow, a night sky) for as long as the surface is shown.
+ */
+export const Scene = z.object({
+  kind: z.literal('weather'),
+  sky: z.enum(SKIES),
+  /** How heavy: drizzle to downpour, flurries to blizzard, haze to thick fog. */
+  intensity: z.number().min(0).max(1),
+  day: z.boolean(),
+  /** Wind, 0 (still) to 1 (a gale); slants the rain and drives the clouds. */
+  wind: z.number().min(0).max(1),
+});
+export type Scene = z.infer<typeof Scene>;
+
 export const DisplayArgs = z.object({
   id: z
     .string()
@@ -138,6 +164,7 @@ export const DisplayArgs = z.object({
     .optional()
     .describe('table: which column (from 0) the row logos and icons sit in; default 0'),
   chart: Chart.optional().describe('chart: the data to plot'),
+  scene: Scene.optional().describe('weather only: turn the page into the weather right now'),
   ttl_seconds: z
     .number()
     .int()
@@ -168,6 +195,7 @@ export interface DisplayRequest {
   title?: string;
   source?: string;
   ttlSeconds?: number;
+  scene?: Scene;
   content: DisplayContent;
 }
 
@@ -191,7 +219,13 @@ export function parseDisplay(
     };
   }
   const a = parsed.data;
-  const base = { id: a.id, title: a.title, source: a.source, ttlSeconds: a.ttl_seconds };
+  const base = {
+    id: a.id,
+    title: a.title,
+    source: a.source,
+    ttlSeconds: a.ttl_seconds,
+    ...(a.scene && { scene: a.scene }),
+  };
   const missing = (field: string) => ({
     ok: false as const,
     error: `${a.component} needs ${field}`,

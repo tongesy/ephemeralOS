@@ -30,7 +30,8 @@ pnpm test         # vitest, all packages
   cached pictures, so the page never loads from third parties).
   Runs TypeScript directly via `tsx`; no build step.
 - `packages/web`: `main.ts` boots everything. `orb/` (shader, look table, state blend,
-  placement in open space, springs),
+  placement in open space, springs), `scene/` (the weather behind everything: sky look
+  table, half-resolution shader the orb pass samples, lightning timing),
   `audio/` (analysers, envelopes), `perf/` (frame meter, quality governor, readout),
   `theme/palette.ts` (the one palette), `styles/` (tokens, base CSS, fading surfaces),
   `display/` (surfaces for the `display` and `screen` tools: stack, render, markdown subset,
