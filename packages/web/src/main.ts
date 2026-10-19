@@ -53,10 +53,26 @@ function showHint(text: string | null): void {
   }
 }
 
+/** What to say once the page can hear: how to start talking, or what setup is missing. */
+let readyHint: { text: string; holdMs?: number } | null = null;
+let readyTimer: ReturnType<typeof setTimeout> | undefined;
+
+function showReady(): void {
+  if (!audio.running) return; // the click hint has priority until audio is unlocked
+  clearTimeout(readyTimer);
+  showHint(readyHint?.text ?? null);
+  if (readyHint?.holdMs) readyTimer = setTimeout(() => showHint(null), readyHint.holdMs);
+}
+
+function setReadyHint(text: string | null, holdMs?: number): void {
+  readyHint = text ? { text, holdMs } : null;
+  showReady();
+}
+
 // Browsers keep audio suspended until a user gesture, which may come before or after
 // the microphone prompt resolves; listen from the start so neither order loses it.
 const unlock = (): void => {
-  void audio.resume().then(() => showHint(null));
+  void audio.resume().then(showReady);
 };
 window.addEventListener('pointerdown', unlock, { once: true });
 window.addEventListener('keydown', unlock, { once: true });
@@ -98,10 +114,13 @@ function speakLocally(text: string): void {
   speechSynthesis.speak(new SpeechSynthesisUtterance(text));
 }
 
+const SETUP_HINT = 'Run pnpm ephemeralos init in your terminal to give me a voice';
+
 async function startVoice(gateway: GatewayClient): Promise<void> {
   const status = await gateway.fetchStatus();
   if (!status.voice) {
     console.info('[voice] no OpenAI key yet; run `pnpm ephemeralos init` to add one');
+    setReadyHint(SETUP_HINT);
     return;
   }
   const microphone = audio.microphone!;
@@ -136,6 +155,8 @@ async function startVoice(gateway: GatewayClient): Promise<void> {
   devTools?.setVoiceAvailable(true);
 
   const begin = (): void => {
+    clearTimeout(readyTimer);
+    showHint(null);
     wake?.listen(false);
     void voice?.start();
   };
@@ -145,6 +166,7 @@ async function startVoice(gateway: GatewayClient): Promise<void> {
       wake = await WakeWord.start(audio.context, microphone.source, status.wakeWord);
       wake.onWake(begin);
       console.info(`[voice] listening for "${status.wakeWord.phrase}"`);
+      setReadyHint(`Say “${status.wakeWord.phrase}”`, 6000);
       return;
     } catch (error) {
       console.warn('[wake] could not start; falling back to click-to-talk', error);
@@ -152,6 +174,7 @@ async function startVoice(gateway: GatewayClient): Promise<void> {
   } else {
     console.info('[voice] wake-word models not installed; click to talk');
   }
+  setReadyHint('Click anywhere to talk', 6000);
   // Without a wake word, the one permitted click doubles as push-to-start.
   window.addEventListener('pointerdown', () => {
     if (audio.running && !voice?.active) begin();
@@ -160,7 +183,11 @@ async function startVoice(gateway: GatewayClient): Promise<void> {
 
 void startAudio().then((ok) => {
   if (ok && gateway) {
-    startVoice(gateway).catch((error: unknown) => console.warn('[voice] unavailable:', error));
+    startVoice(gateway).catch((error: unknown) => {
+      // Usually a gateway from before M2, or one that isn't running.
+      console.warn('[voice] unavailable:', error);
+      setReadyHint(`I can't reach the gateway. Restart it with pnpm start`);
+    });
   }
 });
 

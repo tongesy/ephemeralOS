@@ -59,7 +59,9 @@ export class WakeWord {
         const msg = event.data;
         if (msg.type === 'ready') resolve();
         else if (msg.type === 'wake') this.wakeHandler(msg.score);
-        else {
+        else if (msg.type === 'heard') {
+          console.debug(`[wake] heard something close (score ${msg.score.toFixed(2)})`);
+        } else {
           console.warn('[wake]', msg.message);
           reject(new Error(msg.message));
         }

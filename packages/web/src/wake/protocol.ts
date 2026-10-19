@@ -12,4 +12,8 @@ export type ToWakeWorker =
   | { type: 'listen'; enabled: boolean };
 
 export type FromWakeWorker =
-  { type: 'ready' } | { type: 'wake'; score: number } | { type: 'error'; message: string };
+  | { type: 'ready' }
+  | { type: 'wake'; score: number }
+  /** A near miss, for the console: tells "not hearing me" apart from "not sure it's me". */
+  | { type: 'heard'; score: number }
+  | { type: 'error'; message: string };

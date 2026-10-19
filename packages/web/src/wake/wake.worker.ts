@@ -15,6 +15,8 @@ let busy = false;
 const queue: Float32Array[] = [];
 /** If inference ever falls behind, drop old audio rather than wake late. */
 const MAX_QUEUE = 4;
+/** Scores worth logging even though they didn't wake the orb. */
+const NEAR_MISS = 0.1;
 
 async function drain(): Promise<void> {
   if (busy || !detector) return;
@@ -23,7 +25,12 @@ async function drain(): Promise<void> {
     while (queue.length) {
       const chunk = queue.shift()!;
       const result = await detector.process(chunk);
-      if (result.woke && listening) post({ type: 'wake', score: result.score });
+      if (!listening) continue;
+      if (result.woke) {
+        // Stay quiet until the page says the session is over.
+        listening = false;
+        post({ type: 'wake', score: result.score });
+      } else if (result.score >= NEAR_MISS) post({ type: 'heard', score: result.score });
     }
   } catch (error) {
     post({ type: 'error', message: error instanceof Error ? error.message : String(error) });
