@@ -75,12 +75,22 @@ Sources: [logo.dev images](https://www.logo.dev/docs/logo-images/get), [logo.dev
 
 ## Wikipedia photos (cards, M4)
 
-| Topic     | Finding                                                                                                                                 |
-| --------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Endpoint  | `GET https://en.wikipedia.org/api/rest_v1/page/summary/<Title_with_underscores>`; `thumbnail.source` is on `upload.wikimedia.org`.      |
-| Pages     | `type: "disambiguation"` pages are skipped. A thumbnail URL's `/<n>px-` segment is asked for at 640 px first, then as given.            |
-| Etiquette | Wikimedia blocks generic clients: requests send `User-Agent: ephemeralOS (https://github.com/tongesy/ephemeralOS)`.                     |
-| Unchecked | Field names are from memory and secondary docs; the live API wasn't reachable from the build sandbox. Re-check against a real response. |
+| Topic     | Finding                                                                                                                                                                                                                                                                                  |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Endpoint  | `GET https://en.wikipedia.org/api/rest_v1/page/summary/<Title_with_underscores>`; `thumbnail.source` is on `upload.wikimedia.org`.                                                                                                                                                       |
+| Pages     | `type: "disambiguation"` pages are skipped. Thumbnails only at Wikimedia's standard widths (1280, 960, 500, 330, 250; others get a 429, see [Common thumbnail sizes](https://www.mediawiki.org/wiki/Common_thumbnail_sizes)), never wider than `originalimage.width`, then the original. |
+| Etiquette | Wikimedia blocks generic clients: requests send `User-Agent: ephemeralOS (https://github.com/tongesy/ephemeralOS)`.                                                                                                                                                                      |
+| Unchecked | Field names are from memory and secondary docs; the live API wasn't reachable from the build sandbox. Re-check against a real response.                                                                                                                                                  |
+
+## Openverse (photos when Wikipedia has none)
+
+| Topic     | Finding                                                                                                                                                                                                     |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Endpoint  | `GET https://api.openverse.org/v1/images/?q=<title>&page_size=10&mature=false`; anonymous use is allowed at a lower rate limit, with at most 20 results a page (more gets a 401).                           |
+| Pictures  | Fetched only through Openverse's own `GET /v1/images/<id>/thumb/` (with `?full_size=true` first), so no other host is contacted. Wide results of at least 800 px are preferred.                             |
+| Licences  | Openly licensed (CC and public domain); shown on the user's own screen only.                                                                                                                                |
+| Unsplash  | Its API needs an access key and its terms forbid fetching photos any other way, so it isn't used.                                                                                                           |
+| Unchecked | `full_size` and the result fields are from secondary docs ([out-of-terms usage](https://make.wordpress.org/openverse/2022/06/17/mitigating-out-of-terms-api-usage/)); not reachable from the build sandbox. |
 
 ## Podcasts and YouTube (media, M4)
 

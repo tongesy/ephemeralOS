@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { logoDomain } from '@ephemeralos/shared';
 import { sniffImage } from '../src/images/image-cache.ts';
 import { createLogoService, logoSources } from '../src/images/logos.ts';
-import { createPhotoService, photoSources } from '../src/images/photos.ts';
+import { createPhotoService, openverseSources, photoSources } from '../src/images/photos.ts';
 import { startGateway, type Gateway } from '../src/server.ts';
 
 /** A PNG signature padded past the placeholder threshold. */
@@ -136,6 +136,47 @@ describe('photos', () => {
     expect(init.headers).toMatchObject({ 'User-Agent': expect.stringContaining('ephemeralOS') });
     expect(await photos.get('../etc/passwd')).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('Openverse, when Wikipedia has no photo', () => {
+  const id = '0aff3595-8168-440b-83ff-7a80b65dea42';
+
+  it('takes wide photos, through its own thumbnail service', () => {
+    expect(
+      openverseSources({
+        results: [
+          { id, width: 2000, height: 1300 },
+          { id: id.replace('0a', 'ff'), width: 300, height: 200 },
+          { id: 'not-an-id', width: 4000, height: 3000 },
+        ],
+      }),
+    ).toEqual([
+      `https://api.openverse.org/v1/images/${id}/thumb/?full_size=true`,
+      `https://api.openverse.org/v1/images/${id}/thumb/`,
+    ]);
+    expect(openverseSources({ nothing: true })).toEqual([]);
+  });
+
+  it('is asked only when Wikipedia has nothing', async () => {
+    const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, ...new Array(2000).fill(0)]);
+    const fetchMock = vi.fn(async (url: string | URL) => {
+      const u = String(url);
+      if (u.includes('/page/summary/')) return Response.json({ type: 'standard' });
+      if (u.startsWith('https://api.openverse.org/v1/images/?')) {
+        return Response.json({ results: [{ id, width: 1600, height: 1000 }] });
+      }
+      return u.includes(id) ? new Response(JPEG) : new Response('', { status: 404 });
+    });
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    const photos = createPhotoService({
+      homeDir: await home(),
+      fetch: fetchMock as unknown as typeof fetch,
+    });
+    expect((await photos.get('Amalfi Coast'))?.type).toBe('image/jpeg');
+    const asked = fetchMock.mock.calls.map(([u]) => String(u));
+    expect(asked[1]).toContain('q=Amalfi+Coast');
+    expect(asked[2]).toContain(`${id}/thumb/?full_size=true`);
   });
 });
 

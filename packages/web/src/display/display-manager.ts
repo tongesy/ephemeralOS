@@ -1,7 +1,7 @@
 import { ScreenArgs, parseDisplay, type Scene, type ScreenAction } from '@ephemeralos/shared';
 import type { Rect } from '../orb/placement.ts';
 import { DisplayStack, type DisplayEntry } from './display-stack.ts';
-import { stepSlides } from './editorial.ts';
+import { LAYOUT_CHANGED, stepSlides } from './editorial.ts';
 import { conceal, resize, reveal } from './motion.ts';
 import { wouldReplaceToolResult } from './tool-result.ts';
 import { describeItem, numberedItems, renderSurface } from './render.ts';
@@ -53,6 +53,7 @@ export class DisplayManager {
     private readonly entranceDelay: () => number = () => 0,
   ) {
     window.addEventListener('resize', () => this.reportLayout());
+    document.addEventListener(LAYOUT_CHANGED, () => this.reportLayout());
   }
 
   /**

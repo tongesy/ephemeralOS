@@ -42,6 +42,8 @@ export interface ImageCacheOptions {
   minBytes: number;
   /** Where the image for a key might be, best first. Each answers a miss with a 404. */
   sources(key: string): Promise<string[]>;
+  /** Where else to look, asked only when none of `sources` gave an image. */
+  fallback?(key: string): Promise<string[]>;
   fetch: typeof fetch;
   label: string;
 }
@@ -49,6 +51,17 @@ export interface ImageCacheOptions {
 export interface ImageCache {
   /** The image for an already validated key, from the cache or the web; null if none. */
   get(key: string): Promise<Image | null>;
+}
+
+/** Host and path, trimmed, for a log line. */
+function shortUrl(url: string): string {
+  try {
+    const { host, pathname } = new URL(url);
+    const path = pathname.length > 70 ? `…${pathname.slice(-70)}` : pathname;
+    return `${host}${path}`;
+  } catch {
+    return 'a malformed URL';
+  }
 }
 
 export function createImageCache(options: ImageCacheOptions): ImageCache {
@@ -65,15 +78,23 @@ export function createImageCache(options: ImageCacheOptions): ImageCache {
   }
 
   async function download(url: string): Promise<Uint8Array | null> {
+    // Why a picture didn't come, said plainly, so a missing one can be diagnosed.
+    const why = (reason: string) => {
+      console.info(`[${options.label}] ${reason}: ${shortUrl(url)}`);
+      return null;
+    };
     try {
       const res = await options.fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
-      if (!res.ok) return null;
-      if (Number(res.headers.get('content-length') ?? 0) > options.maxBytes) return null;
+      if (!res.ok) return why(`answered ${res.status}`);
+      if (Number(res.headers.get('content-length') ?? 0) > options.maxBytes) {
+        return why('too large');
+      }
       const bytes = new Uint8Array(await res.arrayBuffer());
-      const sized = bytes.length > options.minBytes && bytes.length <= options.maxBytes;
-      return sized && sniffImage(bytes) ? bytes : null;
-    } catch {
-      return null;
+      if (bytes.length <= options.minBytes) return why(`too small (${bytes.length} bytes)`);
+      if (bytes.length > options.maxBytes) return why('too large');
+      return sniffImage(bytes) ? bytes : why('not an image');
+    } catch (error) {
+      return why(error instanceof Error ? error.name : 'failed');
     }
   }
 
@@ -82,12 +103,15 @@ export function createImageCache(options: ImageCacheOptions): ImageCache {
     const file = join(options.dir, createHash('sha256').update(key).digest('hex').slice(0, 32));
     const hit = await cached(file);
     if (hit) return hit;
-    for (const url of await options.sources(key).catch(() => [])) {
-      const bytes = await download(url);
-      if (!bytes) continue;
-      await mkdir(options.dir, { recursive: true, mode: 0o700 });
-      await writeFile(file, bytes);
-      return bytes;
+    const lookups = [options.sources, ...(options.fallback ? [options.fallback] : [])];
+    for (const lookup of lookups) {
+      for (const url of await lookup(key).catch(() => [])) {
+        const bytes = await download(url);
+        if (!bytes) continue;
+        await mkdir(options.dir, { recursive: true, mode: 0o700 });
+        await writeFile(file, bytes);
+        return bytes;
+      }
     }
     console.info(`[${options.label}] none found for ${key}`);
     misses.set(key, Date.now() + MISS_MS);
