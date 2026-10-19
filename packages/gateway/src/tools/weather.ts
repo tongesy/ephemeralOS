@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { toolParameters, type DisplayArgs } from '@ephemeralos/shared';
+import { toolParameters, type DisplayArgs, type IconName } from '@ephemeralos/shared';
 import { loadHome } from '../home.ts';
 import type { GatewayTool } from './registry.ts';
 
@@ -53,6 +53,17 @@ const SKY: Record<number, string> = {
   96: 'Thunderstorms, hail',
   99: 'Thunderstorms, hail',
 };
+
+/** The bundled icon for a WMO weather code. */
+export function skyIcon(code: number): IconName {
+  if (code === 0) return 'sun';
+  if (code <= 2) return 'cloud-sun';
+  if (code === 3) return 'cloud';
+  if (code <= 48) return 'cloud-fog';
+  if (code <= 67 || (code >= 80 && code <= 82)) return 'cloud-rain';
+  if (code <= 86) return 'cloud-snow';
+  return 'cloud-lightning';
+}
 
 export function describeSky(code: number): string {
   return SKY[code] ?? 'Mixed';
@@ -180,6 +191,7 @@ export function createWeatherTool(options: { homeDir: string; fetch?: typeof fet
       const forecastDays = d.time.map((date, i) => ({
         day: dayLabel(date, i),
         sky: describeSky(d.weather_code[i] ?? -1),
+        icon: skyIcon(d.weather_code[i] ?? -1),
         high: Math.round(d.temperature_2m_max[i] ?? NaN),
         low: Math.round(d.temperature_2m_min[i] ?? NaN),
         rainChance: d.precipitation_probability_max[i] ?? null,
@@ -199,6 +211,8 @@ export function createWeatherTool(options: { homeDir: string; fetch?: typeof fet
             `${f.low}°`,
             f.rainChance === null ? '–' : `${f.rainChance}%`,
           ]),
+          row_icons: forecastDays.map((f) => f.icon),
+          icon_column: 1,
         };
         context.display(table);
       }
@@ -212,7 +226,7 @@ export function createWeatherTool(options: { homeDir: string; fetch?: typeof fet
               sky: describeSky(forecast.current.weather_code),
             }
           : undefined,
-        days: forecastDays,
+        days: forecastDays.map(({ icon: _icon, ...day }) => day),
         shownOnScreen: forecastDays.length > 1,
         source: 'Open-Meteo',
       };

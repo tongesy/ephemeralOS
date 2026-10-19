@@ -256,3 +256,16 @@
 .chart__point {
   transform-origin: center;
 }
+
+/* Logos, crests and flags beside a list item or a table row's first cell. */
+.surface__icon {
+  width: 1.25em;
+  height: 1.25em;
+  margin-right: 0.5em;
+  object-fit: contain;
+  vertical-align: -0.25em;
+}
+
+.surface__glyph {
+  color: var(--eos-stone);
+}

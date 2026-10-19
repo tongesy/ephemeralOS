@@ -82,7 +82,10 @@ describe('weather tool', () => {
         expect.anything(),
         ['Wed 21', 'Clear', '15°', '5°', '–'],
       ],
+      row_icons: ['cloud-sun', 'cloud-rain', 'sun'],
+      icon_column: 1,
     });
+    expect((result.days as object[])[0]).not.toHaveProperty('icon');
   });
 
   it('asks for a place when none is known, and says when a place is not found', async () => {

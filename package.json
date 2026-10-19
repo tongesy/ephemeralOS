@@ -20,7 +20,8 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
-    "ephemeralos": "node packages/cli/bin/ephemeralos.mjs"
+    "ephemeralos": "node packages/cli/bin/ephemeralos.mjs",
+    "icons": "node scripts/build-icons.mjs && prettier --write packages/shared/src/icons.ts packages/web/src/display/icon-paths.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

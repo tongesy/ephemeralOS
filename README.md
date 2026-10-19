@@ -86,8 +86,15 @@ week?" and you hear a short summary while the forecast appears as a table. Weath
 [Open-Meteo](https://open-meteo.com), which needs no key; `init` asks where you are.
 
 For anything current, such as the news, prices or scores, the orb searches the web. It says a
-line or two and shows a short summary with its sources. Searches use Claude when you've given
-`init` an Anthropic key, and OpenAI otherwise; set the models in `config.json` under `brain`.
+line or two and shows what it found in whatever layout fits: a league table with club logos,
+a list of headlines, a price chart. Nothing is designed per topic; the layout is generated
+each time and fades. Searches use Claude when you've given `init` an Anthropic key, and
+OpenAI otherwise; set the models in `config.json` under `brain`.
+
+Logos are looked up by website through the gateway and cached in `~/.ephemeralos/cache`, so
+the page only ever loads them from your own machine. Without a key they are the sites' own
+icons; give `init` an optional [logo.dev](https://www.logo.dev) key for sharper logos.
+Everything else uses a bundled set of [Phosphor](https://phosphoricons.com) icons (MIT).
 
 `init` is the only setup step, and it happens in the terminal: keys are typed there, hidden,
 and saved to `~/.ephemeralos/.env` (mode `600`). They are never typed into, sent to, or spoken

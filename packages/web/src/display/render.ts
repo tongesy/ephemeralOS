@@ -1,5 +1,6 @@
-import type { DisplayRequest } from '@ephemeralos/shared';
+import { LOGOS_PATH, type DisplayRequest, type IconName } from '@ephemeralos/shared';
 import { renderChart } from './chart.ts';
+import { ICON_PATHS } from './icon-paths.ts';
 import { renderMarkdown } from './markdown.ts';
 
 function text<K extends keyof HTMLElementTagNameMap>(
@@ -11,6 +12,48 @@ function text<K extends keyof HTMLElementTagNameMap>(
   node.className = className;
   node.textContent = content;
   return node;
+}
+
+/**
+ * A small inline image (logo, crest, flag). One that fails to load gives way to the
+ * bundled icon, if there is one, or simply disappears.
+ */
+function picture(url: string, fallback: SVGSVGElement | null): HTMLImageElement {
+  const img = document.createElement('img');
+  img.className = 'surface__icon';
+  img.alt = '';
+  img.referrerPolicy = 'no-referrer';
+  img.decoding = 'async';
+  img.src = url;
+  img.addEventListener('error', () => (fallback ? img.replaceWith(fallback) : img.remove()), {
+    once: true,
+  });
+  return img;
+}
+
+/** The mark beside a row or item: its image, else its site's logo, else a bundled icon. */
+function mark(image?: string, domain?: string, iconName?: string): Element | null {
+  const fallback = iconName ? glyph(iconName) : null;
+  if (image) return picture(image, fallback);
+  if (domain) return picture(`${LOGOS_PATH}${encodeURIComponent(domain)}`, fallback);
+  return fallback;
+}
+
+const SVG = 'http://www.w3.org/2000/svg';
+
+/** A bundled icon, drawn from path data (never markup) in the current text colour. */
+function glyph(name: string): SVGSVGElement | null {
+  const d = ICON_PATHS[name as IconName];
+  if (!d) return null;
+  const svg = document.createElementNS(SVG, 'svg');
+  svg.setAttribute('viewBox', '0 0 256 256');
+  svg.setAttribute('class', 'surface__icon surface__glyph');
+  svg.setAttribute('aria-hidden', 'true');
+  const path = document.createElementNS(SVG, 'path');
+  path.setAttribute('d', d);
+  path.setAttribute('fill', 'currentColor');
+  svg.append(path);
+  return svg;
 }
 
 /** Build the surface for one display request. Every string from the model is text, not HTML. */
@@ -45,7 +88,10 @@ export function renderSurface(request: DisplayRequest): HTMLElement {
       ol.className = 'surface__list';
       for (const item of content.items) {
         const li = document.createElement('li');
-        li.append(text('span', 'surface__label', item.label));
+        const label = text('span', 'surface__label', item.label);
+        const beside = mark(item.image_url, item.domain, item.icon);
+        if (beside) label.prepend(beside);
+        li.append(label);
         if (item.detail) li.append(text('span', 'surface__detail', item.detail));
         ol.append(li);
       }
@@ -62,9 +108,18 @@ export function renderSurface(request: DisplayRequest): HTMLElement {
       content.rows.forEach((row, i) => {
         const tr = body.insertRow();
         tr.append(text('td', 'surface__index', String(i + 1)));
-        for (const cell of row) {
-          tr.append(text('td', typeof cell === 'number' ? 'is-number' : '', String(cell)));
-        }
+        row.forEach((cell, c) => {
+          const td = text('td', typeof cell === 'number' ? 'is-number' : '', String(cell));
+          if (c === (content.iconColumn ?? 0)) {
+            const beside = mark(
+              content.rowImages?.[i],
+              content.rowDomains?.[i],
+              content.rowIcons?.[i],
+            );
+            if (beside) td.prepend(beside);
+          }
+          tr.append(td);
+        });
       });
       section.append(table);
       break;

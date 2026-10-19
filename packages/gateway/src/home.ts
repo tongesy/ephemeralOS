@@ -6,6 +6,8 @@ import { Config } from '@ephemeralos/shared';
 export interface Secrets {
   openaiApiKey?: string;
   anthropicApiKey?: string;
+  /** Optional: a logo.dev publishable key, for sharper logos than favicons. */
+  logoDevToken?: string;
 }
 
 /** The persona and memory files, as Markdown. Missing files read as empty. */
@@ -79,6 +81,7 @@ export async function loadHome(dir: string): Promise<Home> {
     secrets: {
       openaiApiKey: env.OPENAI_API_KEY || undefined,
       anthropicApiKey: env.ANTHROPIC_API_KEY || undefined,
+      logoDevToken: env.LOGO_DEV_TOKEN || undefined,
     },
     persona: { soul, user, memory },
     modelsDir: join(dir, 'models'),

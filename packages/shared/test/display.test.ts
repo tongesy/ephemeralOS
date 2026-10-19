@@ -45,4 +45,14 @@ describe('tool schemas', () => {
     expect(display).toMatchObject({ type: 'object', required: ['component'] });
     expect(toolParameters(ScreenArgs)).toMatchObject({ required: ['action'] });
   });
+
+  it('carries row logos for tables and keeps them to https', () => {
+    const table = { component: 'table', columns: ['Team'], rows: [['A'], ['B']] };
+    const ok = parseDisplay({ ...table, row_images: ['https://x.org/a.png', ''] });
+    expect(ok.ok && ok.value.content).toMatchObject({ rowImages: ['https://x.org/a.png', ''] });
+    expect(parseDisplay({ ...table, row_images: ['http://x.org/a.png'] }).ok).toBe(false);
+    const logos = parseDisplay({ ...table, row_domains: ['arsenal.com', ''] });
+    expect(logos.ok && logos.value.content).toMatchObject({ rowDomains: ['arsenal.com', ''] });
+    expect(parseDisplay({ ...table, row_domains: ['localhost'] }).ok).toBe(false);
+  });
 });

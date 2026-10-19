@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ICON_NAMES } from './icons.ts';
 
 /**
  * The `display` and `screen` tools: what the voice (and, from M4, the brain) can put on
@@ -13,9 +14,48 @@ import { z } from 'zod';
 export const DISPLAY_COMPONENTS = ['card', 'list', 'table', 'chart'] as const;
 export type DisplayComponent = (typeof DISPLAY_COMPONENTS)[number];
 
+/** An image the page may load: https only, so nothing local or scripted. */
+const ImageUrl = z
+  .string()
+  .max(2000)
+  .regex(/^https:\/\/[^\s]+$/, 'must be an https URL');
+
+/** URL path the gateway serves cached logos on: `/logos/<domain>`. */
+export const LOGOS_PATH = '/logos/';
+
+const DOMAIN = /^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
+const PRIVATE_SUFFIX = /(?:^|\.)(?:localhost|local|internal|lan|home|arpa|test|example|invalid)$/;
+
+/**
+ * The public domain a logo can be looked up for, from what the brain wrote ("arsenal.com",
+ * "https://www.arsenal.com/news"), or null. Names only: no IPs, ports or local names.
+ */
+export function logoDomain(raw: string): string | null {
+  const host = raw
+    .trim()
+    .toLowerCase()
+    .replace(/^[a-z]+:\/\//, '')
+    .replace(/[/?#].*$/, '')
+    .replace(/^www\./, '')
+    .replace(/\.$/, '');
+  return DOMAIN.test(host) && !PRIVATE_SUFFIX.test(host) ? host : null;
+}
+
+/** A website whose logo the gateway fetches and caches; written as a bare domain. */
+const Domain = z
+  .string()
+  .max(253)
+  .refine((d) => logoDomain(d) === d, 'must be a bare public domain, like "arsenal.com"');
+
+/** One of the bundled icons (Phosphor, light), drawn in the palette. */
+const Icon = z.enum(ICON_NAMES);
+
 const ListItem = z.object({
   label: z.string().min(1).max(200),
   detail: z.string().max(400).optional().describe('One short line under the label.'),
+  image_url: ImageUrl.optional().describe('A small logo, flag or photo beside the item'),
+  domain: Domain.optional().describe("The item's own website, for its logo"),
+  icon: Icon.optional().describe('A bundled icon beside the item, when no image fits'),
 });
 
 const Cell = z.union([z.string().max(200), z.number()]);
@@ -47,15 +87,32 @@ export const DisplayArgs = z.object({
     .max(4000)
     .optional()
     .describe('card: short Markdown (paragraphs, **bold**, *italic*, - bullets)'),
-  image_url: z
-    .string()
-    .max(2000)
-    .regex(/^https:\/\/[^\s]+$/, 'must be an https URL')
-    .optional()
-    .describe('card: optional https image'),
+  image_url: ImageUrl.optional().describe('card: optional https image'),
   items: z.array(ListItem).min(1).max(30).optional().describe('list: shown numbered'),
   columns: z.array(z.string().max(60)).min(1).max(8).optional().describe('table: headers'),
   rows: z.array(z.array(Cell).max(8)).min(1).max(50).optional().describe('table: shown numbered'),
+  row_images: z
+    .array(z.union([ImageUrl, z.literal('')]))
+    .max(50)
+    .optional()
+    .describe('table: a small logo or flag per row, "" for none'),
+  row_domains: z
+    .array(z.union([Domain, z.literal('')]))
+    .max(50)
+    .optional()
+    .describe('table: each row\'s own website, for its logo, "" for none'),
+  row_icons: z
+    .array(z.union([Icon, z.literal('')]))
+    .max(50)
+    .optional()
+    .describe('table: a bundled icon per row (e.g. weather), "" for none'),
+  icon_column: z
+    .number()
+    .int()
+    .min(0)
+    .max(7)
+    .optional()
+    .describe('table: which column (from 0) the row logos and icons sit in; default 0'),
   chart: Chart.optional().describe('chart: the data to plot'),
   ttl_seconds: z
     .number()
@@ -71,7 +128,15 @@ export type DisplayArgs = z.infer<typeof DisplayArgs>;
 export type DisplayContent =
   | { component: 'card'; body: string; imageUrl?: string }
   | { component: 'list'; items: z.infer<typeof ListItem>[] }
-  | { component: 'table'; columns: string[]; rows: (string | number)[][] }
+  | {
+      component: 'table';
+      columns: string[];
+      rows: (string | number)[][];
+      rowImages?: string[];
+      rowDomains?: string[];
+      rowIcons?: string[];
+      iconColumn?: number;
+    }
   | { component: 'chart'; chart: Chart };
 
 export interface DisplayRequest {
@@ -129,7 +194,18 @@ export function parseDisplay(
       }
       return {
         ok: true,
-        value: { ...base, content: { component: 'table', columns: a.columns, rows: a.rows } },
+        value: {
+          ...base,
+          content: {
+            component: 'table',
+            columns: a.columns,
+            rows: a.rows,
+            ...(a.row_images?.some(Boolean) && { rowImages: a.row_images }),
+            ...(a.row_domains?.some(Boolean) && { rowDomains: a.row_domains }),
+            ...(a.row_icons?.some(Boolean) && { rowIcons: a.row_icons }),
+            ...(a.icon_column !== undefined && { iconColumn: a.icon_column }),
+          },
+        },
       };
     }
     case 'chart': {

@@ -2,7 +2,7 @@ import { Config } from '@ephemeralos/shared';
 
 /** The keys `init` asks for, and how to check each one works. */
 export interface KeySpec {
-  env: 'OPENAI_API_KEY' | 'ANTHROPIC_API_KEY';
+  env: 'OPENAI_API_KEY' | 'ANTHROPIC_API_KEY' | 'LOGO_DEV_TOKEN';
   label: string;
   why: string;
   where: string;
@@ -33,13 +33,25 @@ export const KEYS: KeySpec[] = [
   {
     env: 'ANTHROPIC_API_KEY',
     label: 'Anthropic',
-    why: 'the brain (research and multi-step work, from M4)',
+    why: 'the brain (web search; without it, OpenAI searches instead)',
     where: 'https://console.anthropic.com/settings/keys',
     required: false,
     check: (key, doFetch) =>
       doFetch('https://api.anthropic.com/v1/models', {
         headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
       }),
+  },
+  {
+    env: 'LOGO_DEV_TOKEN',
+    label: 'logo.dev',
+    why: 'sharper logos; use the publishable pk_ key (without it, site icons are used)',
+    where: 'https://www.logo.dev/dashboard',
+    required: false,
+    // The gateway fetches logos with this key; the page never sees it.
+    check: (key, doFetch) =>
+      doFetch(
+        `https://img.logo.dev/logo.dev?token=${encodeURIComponent(key)}&size=32&format=png&fallback=404`,
+      ),
   },
 ];
 
