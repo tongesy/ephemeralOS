@@ -278,6 +278,9 @@ export function createWeatherTool(options: { homeDir: string; fetch?: typeof fet
           : undefined,
         days: forecastDays.map(({ icon: _icon, ...day }) => day),
         shownOnScreen: forecastDays.length > 1,
+        ...(forecastDays.length > 1 && {
+          screen: 'Already on screen: do not call display for this. Just say the gist.',
+        }),
         source: 'Open-Meteo',
       };
     },

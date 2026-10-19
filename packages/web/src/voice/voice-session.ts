@@ -22,6 +22,8 @@ export interface VoiceSessionDeps {
   speakFallback(text: string): void;
   /** Play and measure the voice's audio, or stop doing so (`null`). */
   audio(stream: MediaStream | null): void;
+  /** The user started speaking (a new turn). */
+  heard?(): void;
   /** The microphone is open and the voice can hear: the moment to start talking. */
   ready?(): void;
   /** The session ended, for whatever reason; the wake word can listen again. */
@@ -166,6 +168,7 @@ export class VoiceSession {
       case 'input_audio_buffer.speech_started':
         // Also barge-in: the server cuts the reply short and truncates what wasn't heard.
         this.disarmSilence();
+        this.deps.heard?.();
         this.deps.setState('listening');
         break;
       case 'input_audio_buffer.speech_stopped':

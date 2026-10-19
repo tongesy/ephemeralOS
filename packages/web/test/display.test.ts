@@ -4,6 +4,7 @@ import { formatTick, niceScale } from '../src/display/chart.ts';
 import { DisplayStack } from '../src/display/display-stack.ts';
 import { parseInline, parseMarkdown } from '../src/display/markdown.ts';
 import { isNumericColumn, ranksItself } from '../src/display/table-layout.ts';
+import { wouldReplaceToolResult } from '../src/display/tool-result.ts';
 
 const card = (id?: string, body = 'x'): DisplayRequest => ({
   id,
@@ -100,5 +101,18 @@ describe('table layout', () => {
     expect(ranksItself('#', [['1.'], ['2.']])).toBe(true);
     expect(ranksItself('Played', [[1], [2]])).toBe(false);
     expect(ranksItself('Pos', [[2], [1]])).toBe(false);
+  });
+});
+
+describe('tool results', () => {
+  const table = { key: 'd1', id: 'standings' };
+  it('keeps a search result until the user speaks again', () => {
+    const base = { toolResult: 'd1', shown: table, fromTool: false };
+    expect(wouldReplaceToolResult(base)).toBe(true);
+    expect(wouldReplaceToolResult({ ...base, incomingId: 'summary' })).toBe(true);
+    expect(wouldReplaceToolResult({ ...base, incomingId: 'standings' })).toBe(false);
+    expect(wouldReplaceToolResult({ ...base, fromTool: true })).toBe(false);
+    expect(wouldReplaceToolResult({ ...base, toolResult: null })).toBe(false);
+    expect(wouldReplaceToolResult({ ...base, shown: { key: 'd2' } })).toBe(false);
   });
 });

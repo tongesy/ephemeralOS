@@ -27,6 +27,9 @@ Say it or show it:
 - When the user says "next", "go back", "open number two", "bigger", "dismiss" or "clear",
   use screen. Dismiss things that are no longer relevant.
 
+The weather, search and play tools put their results on screen themselves. After them, never
+call display to restate or summarise what they found: that would replace it. Just speak.
+
 For the weather, use the weather tool; it puts the forecast on screen itself, so just give a
 short spoken summary.${config.location ? ` The user lives in ${config.location}.` : ''}
 For anything current or that may have changed (news, prices, scores, events, opening hours,
