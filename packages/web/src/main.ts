@@ -5,6 +5,7 @@ import './styles/base.css';
 import './styles/surface.css';
 
 import { AudioLevels } from './audio/audio-levels.ts';
+import { playChime } from './audio/chime.ts';
 import type { DevTools } from './dev/dev-tools.ts';
 import { DisplayManager } from './display/display-manager.ts';
 import { GatewayClient } from './gateway-client.ts';
@@ -172,7 +173,10 @@ async function startVoice(gateway: GatewayClient): Promise<void> {
         audio.attachOutput(audio.context.createMediaStreamSource(stream));
       } else audio.detachOutput();
     },
+    // A chime as the microphone opens, so after the wake word you know when to talk.
+    ready: () => playChime(audio.context, 'open'),
     ended: () => {
+      playChime(audio.context, 'close');
       display.sessionEnded();
       wake?.listen(true);
     },

@@ -87,6 +87,7 @@ export class Orb {
         uBreath: { value: 0 },
         uPulse: { value: 0 },
         uAura: { value: 0 },
+        uOpacity: { value: 1 },
         uSwirlPhase: { value: 0 },
         uSwirl: { value: 0 },
         uFlowPhase: { value: 0 },
@@ -160,7 +161,7 @@ export class Orb {
       this.x.update(dtMs) * ratio,
       (window.innerHeight - this.y.update(dtMs)) * ratio,
     );
-    u.uRadius!.value = this.radius.update(dtMs) * ratio;
+    u.uRadius!.value = this.radius.update(dtMs) * this.look.size * ratio;
 
     u.uTime!.value = this.time;
     (u.uState!.value as number[]).splice(0, weights.length, ...weights);
@@ -172,6 +173,7 @@ export class Orb {
     u.uIntensity!.value = this.look.intensity;
     u.uWarp!.value = this.look.warp;
     u.uAura!.value = this.look.aura;
+    u.uOpacity!.value = this.look.opacity;
     u.uRipple!.value = this.look.ripple * this.motion;
     u.uBreath!.value = this.look.breath * this.motion;
     u.uPulse!.value = this.look.pulse * (0.4 + 0.6 * this.motion);
