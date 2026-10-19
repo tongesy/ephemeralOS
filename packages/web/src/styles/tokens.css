@@ -1,0 +1,47 @@
+/*
+ * Design tokens. Colors come from theme/palette.ts (applied at boot as --eos-*);
+ * spacing, easing and shadows build on Open Props.
+ */
+@import 'open-props/sizes';
+@import 'open-props/easings';
+
+:root {
+  /* Type */
+  --eos-font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  --eos-font-mono: 'Geist Mono Variable', ui-monospace, monospace;
+  --eos-weight-light: 300;
+  --eos-weight-regular: 400;
+  --eos-weight-medium: 500;
+  --eos-tracking-tight: -0.02em;
+  --eos-tracking-wide: 0.04em;
+
+  /* Fallbacks until applyPalette() runs. */
+  --eos-paper: #f7f5f2;
+  --eos-ink: #1c1b19;
+  --eos-stone: #76716b;
+  --eos-mist: #c9c4bd;
+
+  /* Glass: frosted white over paper. */
+  --eos-glass-fill: color-mix(in oklab, white 62%, transparent);
+  --eos-glass-hairline: color-mix(in oklab, var(--eos-ink) 8%, transparent);
+  --eos-glass-blur: 24px;
+  --eos-glass-radius: var(--size-4);
+  --eos-glass-shadow:
+    0 1px 0 0 rgb(255 255 255 / 0.8) inset, 0 1px 2px rgb(28 27 25 / 0.04),
+    0 24px 64px -24px rgb(28 27 25 / 0.16);
+
+  /* Motion: calm, never bouncy. */
+  --eos-ease: var(--ease-3);
+  --eos-ease-out: var(--ease-out-3);
+  --eos-duration-fast: 200ms;
+  --eos-duration: 450ms;
+  --eos-duration-slow: 900ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --eos-duration-fast: 0ms;
+    --eos-duration: 0ms;
+    --eos-duration-slow: 0ms;
+  }
+}
