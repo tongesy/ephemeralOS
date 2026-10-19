@@ -6,6 +6,8 @@
 
 const CALLS_URL = 'https://api.openai.com/v1/realtime/calls';
 const CONNECT_TIMEOUT_MS = 10_000;
+/** `?debug` in the address bar logs every Realtime event (except streaming deltas). */
+const TRACE = new URLSearchParams(location.search).has('debug');
 
 /** A server event. Only the fields the session reads are typed; see OpenAI's Realtime reference. */
 export interface RealtimeEvent {
@@ -52,6 +54,7 @@ export async function connectRealtime(
 
   pc.addTrack(track);
   pc.ontrack = (event) => {
+    if (TRACE) console.info('[realtime] remote audio track', event.track.readyState);
     const stream = event.streams[0] ?? new MediaStream([event.track]);
     handlers.onAudio(stream);
   };
@@ -62,7 +65,9 @@ export async function connectRealtime(
   };
   channel.onmessage = (message) => {
     try {
-      handlers.onEvent(JSON.parse(String(message.data)) as RealtimeEvent);
+      const event = JSON.parse(String(message.data)) as RealtimeEvent;
+      if (TRACE && !event.type.endsWith('.delta')) console.info('[realtime] ←', event.type, event);
+      handlers.onEvent(event);
     } catch {
       console.warn('[realtime] ignoring a malformed event');
     }
@@ -95,6 +100,7 @@ export async function connectRealtime(
 
   return {
     send(event) {
+      if (TRACE) console.info('[realtime] →', event.type, event);
       if (channel.readyState === 'open') channel.send(JSON.stringify(event));
     },
     close,

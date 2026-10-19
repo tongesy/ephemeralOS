@@ -194,7 +194,7 @@ export class VoiceSession {
         for (const call of functionCalls(event)) void this.runTool(call);
         break;
       case 'error':
-        console.warn('[voice] Realtime error:', event.error);
+        console.warn('[voice] Realtime error:', JSON.stringify(event.error));
         break;
     }
   }

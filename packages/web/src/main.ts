@@ -147,8 +147,11 @@ async function startVoice(gateway: GatewayClient): Promise<void> {
     speakFallback: speakLocally,
     audio: (stream) => {
       player.srcObject = stream;
-      if (stream) audio.attachOutput(audio.context.createMediaStreamSource(stream));
-      else audio.detachOutput();
+      if (stream) {
+        // Autoplay can be refused without a click on the page; say so rather than stay mute.
+        player.play().catch((error: unknown) => console.warn('[voice] playback blocked:', error));
+        audio.attachOutput(audio.context.createMediaStreamSource(stream));
+      } else audio.detachOutput();
     },
     ended: () => wake?.listen(true),
   });
