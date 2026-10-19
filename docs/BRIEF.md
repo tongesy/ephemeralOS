@@ -52,6 +52,12 @@
 >   with `kicker`, title and dek over it) and `gallery` (`images`, up to eight, each a
 >   Wikipedia `photo` or an https `image_url` with a caption, as a mosaic or, with
 >   `slideshow`, one at a time full screen; "next" and "back" step through the slides).
+> - Media: a gateway `play` tool finds a podcast episode (Apple's directory, no key) or a
+>   YouTube video (found with a web search, confirmed with oEmbed) and starts it on the page;
+>   a page tool `media` pauses, resumes, skips, restarts, changes the volume or stops it.
+>   Podcast audio is relayed by the gateway at `/media/<id>` (ids it issued; https to public
+>   addresses only), videos play in `youtube-nocookie.com` frames, the only frames allowed.
+>   It keeps playing after the session and ducks while one is open.
 > - A gateway tool that is still running keeps the session open and the orb thinking, so
 >   a slow answer is always spoken before the screen fades.
 >

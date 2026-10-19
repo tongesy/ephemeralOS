@@ -26,7 +26,7 @@ const run = async (dir: string, fetchMock: unknown) => {
   const tool = createSearchTool({ homeDir: dir, fetch: fetchMock as typeof fetch });
   const result = await tool.run(
     { query: "what's in the news today?" },
-    { display: (a) => shown.push(a) },
+    { display: (a) => shown.push(a), media: () => {} },
   );
   return { result, shown };
 };
@@ -136,20 +136,22 @@ describe('search tool', () => {
       homeDir: await home('OPENAI_API_KEY=sk-secret\n'),
       fetch: failing as unknown as typeof fetch,
     });
-    await expect(tool.run({ query: 'news' }, { display: () => {} })).rejects.toThrow(
-      /OpenAI answered 404: .*model not found/,
-    );
-    await expect(tool.run({ query: 'news' }, { display: () => {} })).rejects.not.toThrow(
-      /sk-secret/,
-    );
+    await expect(
+      tool.run({ query: 'news' }, { display: () => {}, media: () => {} }),
+    ).rejects.toThrow(/OpenAI answered 404: .*model not found/);
+    await expect(
+      tool.run({ query: 'news' }, { display: () => {}, media: () => {} }),
+    ).rejects.not.toThrow(/sk-secret/);
 
     const none = createSearchTool({
       homeDir: await home(''),
       fetch: failing as unknown as typeof fetch,
     });
-    expect(await none.run({ query: 'news' }, { display: () => {} })).toMatchObject({
-      error: expect.stringContaining('No API key'),
-    });
+    expect(await none.run({ query: 'news' }, { display: () => {}, media: () => {} })).toMatchObject(
+      {
+        error: expect.stringContaining('No API key'),
+      },
+    );
   });
 });
 

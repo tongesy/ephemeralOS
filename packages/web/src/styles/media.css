@@ -1,0 +1,263 @@
+/*
+ * What is playing. A podcast arrives as a glass card with its artwork, large beside the
+ * orb, then settles into a small player in the corner; a video plays in a wide rounded
+ * screen, poster first, and glides into the corner when something else is shown.
+ */
+
+.media {
+  position: fixed;
+  z-index: 2;
+  opacity: 0;
+  transform: translateY(12px) scale(0.985);
+  filter: blur(8px);
+  transition:
+    opacity var(--eos-duration-slow) var(--eos-ease-out),
+    transform var(--eos-duration-slow) var(--eos-ease-out),
+    filter var(--eos-duration-slow) var(--eos-ease-out);
+}
+
+.media[data-shown] {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+.media__by {
+  margin: 0 0 var(--size-1);
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--eos-stone);
+}
+
+.media__title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: var(--eos-weight-light);
+  letter-spacing: var(--eos-tracking-tight);
+  line-height: 1.15;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.media__meta {
+  margin: var(--size-2) 0 0;
+  font-size: 0.8125rem;
+  color: var(--eos-stone);
+}
+
+/* --- A podcast, on stage ---------------------------------------------------------- */
+
+.media--audio {
+  left: 8vw;
+  top: 50%;
+  translate: 0 -50%;
+  width: min(380px, 84vw);
+  padding: var(--size-4);
+}
+
+.media__art {
+  display: block;
+  /* Square, as large as the card allows without crowding a short screen. */
+  width: min(100%, 44vh);
+  aspect-ratio: 1;
+  object-fit: cover;
+  margin-bottom: var(--size-4);
+  border-radius: var(--size-3);
+  background: color-mix(in oklab, var(--eos-ink) 6%, transparent);
+  box-shadow: 0 18px 40px -20px rgb(28 27 25 / 0.35);
+  opacity: 0;
+  transition: opacity var(--eos-duration-slow) var(--eos-ease-out);
+}
+
+.media__art[data-loaded] {
+  opacity: 1;
+}
+
+.media__progress {
+  height: 2px;
+  margin-top: var(--size-4);
+  overflow: hidden;
+  border-radius: 1px;
+  background: var(--eos-glass-hairline);
+}
+
+.media__bar {
+  display: block;
+  height: 100%;
+  background: var(--eos-ink);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition:
+    transform 260ms linear,
+    background var(--eos-duration) var(--eos-ease);
+}
+
+.media__time {
+  display: flex;
+  justify-content: space-between;
+  margin: var(--size-2) 0 0;
+  font-family: var(--eos-font-mono);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--eos-stone);
+}
+
+/* Paused: the progress goes quiet and the time breathes slowly. */
+.media[data-paused] .media__bar {
+  background: var(--eos-stone);
+}
+
+.media[data-paused] .media__time {
+  animation: eos-paused 2.4s var(--eos-ease) infinite;
+}
+
+@keyframes eos-paused {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* --- A podcast, settled in the corner ----------------------------------------------- */
+
+.media--audio.is-docked {
+  top: auto;
+  bottom: var(--size-5);
+  left: var(--size-5);
+  translate: none;
+  width: min(320px, 72vw);
+  padding: var(--size-3);
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  column-gap: var(--size-3);
+  align-items: center;
+}
+
+.media--audio.is-docked .media__art {
+  width: 48px;
+  margin: 0;
+  border-radius: var(--size-2);
+  box-shadow: none;
+}
+
+.media--audio.is-docked .media__by {
+  font-size: 0.6875rem;
+  margin: 0;
+}
+
+.media--audio.is-docked .media__title {
+  font-size: 0.9375rem;
+  font-weight: var(--eos-weight-regular);
+  -webkit-line-clamp: 1;
+}
+
+.media--audio.is-docked .media__meta,
+.media--audio.is-docked .media__time {
+  display: none;
+}
+
+.media--audio.is-docked .media__progress {
+  grid-column: 1 / -1;
+  margin-top: var(--size-3);
+}
+
+/* --- A video ------------------------------------------------------------------------ */
+
+.media--video {
+  left: 8vw;
+  top: 50%;
+  translate: 0 -50%;
+  width: min(62vw, calc(72vh * 16 / 9), 1100px);
+  transition:
+    opacity var(--eos-duration-slow) var(--eos-ease-out),
+    transform var(--eos-duration-slow) var(--eos-ease-out),
+    filter var(--eos-duration-slow) var(--eos-ease-out),
+    left var(--eos-duration-slow) var(--eos-ease-out),
+    top var(--eos-duration-slow) var(--eos-ease-out),
+    translate var(--eos-duration-slow) var(--eos-ease-out),
+    width var(--eos-duration-slow) var(--eos-ease-out);
+}
+
+.media__screen {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--size-4);
+  background: var(--eos-ink);
+  box-shadow: 0 30px 80px -30px rgb(28 27 25 / 0.45);
+  transition: border-radius var(--eos-duration-slow) var(--eos-ease-out);
+}
+
+.media__poster,
+.media__frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.media__poster {
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity var(--eos-duration-slow) var(--eos-ease-out);
+  animation: eos-drift 14s linear both;
+}
+
+.media__poster[data-loaded] {
+  opacity: 1;
+}
+
+/* The player fades in over the poster once the video is actually playing. */
+.media__frame {
+  opacity: 0;
+  transition: opacity 1200ms var(--eos-ease-out);
+}
+
+.media--video[data-playing] .media__frame {
+  opacity: 1;
+}
+
+.media__caption {
+  margin-top: var(--size-4);
+}
+
+.media--video .media__title {
+  font-size: 1.375rem;
+  -webkit-line-clamp: 2;
+}
+
+/* In the corner: small, but never below the size YouTube's player needs. */
+.media--video.is-docked {
+  left: var(--size-5);
+  top: calc(100vh - var(--size-5));
+  translate: 0 -100%;
+  width: 356px;
+}
+
+.media--video.is-docked .media__screen {
+  border-radius: var(--size-3);
+}
+
+.media--video.is-docked .media__caption {
+  margin-top: var(--size-2);
+}
+
+.media--video.is-docked .media__by {
+  display: none;
+}
+
+.media--video.is-docked .media__title {
+  font-size: 0.875rem;
+  font-weight: var(--eos-weight-regular);
+  -webkit-line-clamp: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .media__poster,
+  .media[data-paused] .media__time {
+    animation: none;
+  }
+}

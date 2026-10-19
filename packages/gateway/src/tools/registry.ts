@@ -1,9 +1,12 @@
+import type { MediaItem } from '@ephemeralos/shared';
 import type { RealtimeFunction } from '../realtime/session.ts';
 
 /** What a running tool can do besides return a result. */
 export interface ToolContext {
   /** Put something on the caller's screen (`display` tool arguments). */
   display(args: unknown): void;
+  /** Start playing something on the caller's page. */
+  media(item: MediaItem): void;
 }
 
 /** A tool the gateway runs on the voice model's behalf. Arguments arrive as parsed JSON. */
@@ -12,7 +15,7 @@ export interface GatewayTool {
   run(args: unknown, context: ToolContext): Promise<unknown>;
 }
 
-const NO_CONTEXT: ToolContext = { display: () => {} };
+const NO_CONTEXT: ToolContext = { display: () => {}, media: () => {} };
 
 /**
  * Tools the voice session can call through the gateway: live data now; delegate, memory,
