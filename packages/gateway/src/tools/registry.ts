@@ -45,9 +45,17 @@ export class ToolRegistry {
       if (typeof failure === 'string') console.warn(`[tools] ${name}: ${failure}`);
       return JSON.stringify(result);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = describeError(error);
       console.warn(`[tools] ${name} failed: ${message}`);
       return JSON.stringify({ error: message });
     }
   }
+}
+
+/** An error's message plus its cause: Node's fetch says only "fetch failed" without it. */
+function describeError(error: unknown): string {
+  if (!(error instanceof Error)) return String(error);
+  const cause = error.cause as { code?: unknown; message?: unknown } | undefined;
+  const detail = cause && (typeof cause.code === 'string' ? cause.code : cause.message);
+  return typeof detail === 'string' && detail ? `${error.message} (${detail})` : error.message;
 }
