@@ -67,7 +67,7 @@ class Channel {
 
 /**
  * Measures microphone input and voice output through AnalyserNodes.
- * M1 wires the microphone; M2 connects the Realtime session's audio via `attachOutput`.
+ * The voice session's audio is attached with `attachOutput` while a session is open.
  */
 export class AudioLevels {
   readonly snapshot: LevelsSnapshot = {
@@ -78,9 +78,12 @@ export class AudioLevels {
     spectrumOut: new Float32Array(SPECTRUM_SIZE),
   };
 
-  private readonly context = new AudioContext({ latencyHint: 'interactive' });
+  readonly context = new AudioContext({ latencyHint: 'interactive' });
+  /** The live microphone, once granted; the wake word and voice session share it. */
+  microphone: { stream: MediaStream; source: MediaStreamAudioSourceNode } | null = null;
   private input: Channel | null = null;
   private output: Channel | null = null;
+  private outputSource: AudioNode | null = null;
   private readonly bandEnvs = [0, 1, 2, 3].map(() => new Envelope(30, 200));
   private readonly bandsRaw = new Float32Array(4);
 
@@ -95,15 +98,25 @@ export class AudioLevels {
 
   async attachMicrophone(): Promise<MediaStream> {
     const stream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS);
+    const source = this.context.createMediaStreamSource(stream);
     this.input = new Channel(this.context, 30, 220);
-    this.context.createMediaStreamSource(stream).connect(this.input.analyser);
+    source.connect(this.input.analyser);
+    this.microphone = { stream, source };
     return stream;
   }
 
-  /** Route an audio node (e.g. remote Realtime audio) through the output analyser. */
+  /** Measure an audio node (the voice session's remote audio) as output. */
   attachOutput(node: AudioNode): void {
+    this.detachOutput();
     this.output = new Channel(this.context, 25, 180);
+    this.outputSource = node;
     node.connect(this.output.analyser);
+  }
+
+  detachOutput(): void {
+    this.outputSource?.disconnect();
+    this.outputSource = null;
+    this.output = null;
   }
 
   /** Read the analysers and smooth the results. Call once per animation frame. */

@@ -1,0 +1,21 @@
+{
+  "name": "@ephemeralos/cli",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "ephemeralos": "./bin/ephemeralos.mjs"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@ephemeralos/gateway": "workspace:*",
+    "@ephemeralos/shared": "workspace:*",
+    "tsx": "^4.23.15"
+  }
+}

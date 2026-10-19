@@ -16,6 +16,12 @@
 >   (voice), not a generic ripple.
 > - API details marked [verify] were checked on 2026-10-19; see
 >   [`api-verification.md`](api-verification.md).
+> - Wake word (M2): ships on openWakeWord's "Hey Jarvis"; a trained "Hey Orb" comes later.
+>   The pretrained models are CC BY-NC-SA, so `init` downloads them instead of the repo
+>   bundling them. Without them, a click starts a session.
+> - `init` (M2): the Anthropic key can be skipped until delegation (M4) needs it. It is run as
+>   `pnpm ephemeralos init` from the repo until the package is published to npm.
+> - The default Realtime model is `gpt-realtime-2.1-mini`, set in `config.json`.
 >
 > The brief below is otherwise kept as written.
 

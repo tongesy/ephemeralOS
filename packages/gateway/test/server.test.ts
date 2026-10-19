@@ -22,6 +22,7 @@ async function start(webRoot: string | null = null): Promise<Gateway> {
     token: TOKEN,
     extraOrigins: [],
     webRoot,
+    homeDir: await mkdtemp(join(tmpdir(), 'eos-home-')),
   });
   return gateway;
 }

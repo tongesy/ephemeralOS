@@ -1,10 +1,13 @@
 import { z } from 'zod';
 
 /** Bumped whenever the browser ⇄ gateway wire format changes incompatibly. */
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2;
 
 /** Path the gateway serves its WebSocket on. */
 export const WS_PATH = '/ws';
+
+/** Header carrying the per-launch token on HTTP API calls. */
+export const TOKEN_HEADER = 'x-eos-token';
 
 /** Name of the `<meta>` tag the gateway injects the per-launch token into. */
 export const TOKEN_META_NAME = 'eos-token';
@@ -19,7 +22,29 @@ export const ClientPing = z.object({
   t: z.number(),
 });
 
-export const ClientMessage = z.discriminatedUnion('type', [ClientHello, ClientPing]);
+/** A finished turn of conversation, for the local JSONL transcript. */
+export const ClientTranscript = z.object({
+  type: z.literal('transcript'),
+  sessionId: z.string().max(200),
+  role: z.enum(['user', 'assistant']),
+  text: z.string().max(20_000),
+});
+
+/** A function call from the voice session, relayed for the gateway to run. */
+export const ClientToolCall = z.object({
+  type: z.literal('tool.call'),
+  callId: z.string().max(200),
+  name: z.string().max(100),
+  /** JSON-encoded arguments, exactly as the model produced them. */
+  arguments: z.string().max(100_000),
+});
+
+export const ClientMessage = z.discriminatedUnion('type', [
+  ClientHello,
+  ClientPing,
+  ClientTranscript,
+  ClientToolCall,
+]);
 export type ClientMessage = z.infer<typeof ClientMessage>;
 
 export const ServerWelcome = z.object({
@@ -39,7 +64,20 @@ export const ServerError = z.object({
   message: z.string(),
 });
 
-export const ServerMessage = z.discriminatedUnion('type', [ServerWelcome, ServerPong, ServerError]);
+/** The outcome of a relayed tool call; `output` goes back to the model as-is. */
+export const ServerToolResult = z.object({
+  type: z.literal('tool.result'),
+  callId: z.string(),
+  /** JSON-encoded result. */
+  output: z.string(),
+});
+
+export const ServerMessage = z.discriminatedUnion('type', [
+  ServerWelcome,
+  ServerPong,
+  ServerError,
+  ServerToolResult,
+]);
 export type ServerMessage = z.infer<typeof ServerMessage>;
 
 /** Parse a raw WebSocket frame as JSON, then validate it. Never throws. */

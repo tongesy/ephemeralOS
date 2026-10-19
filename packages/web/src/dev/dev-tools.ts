@@ -8,7 +8,8 @@
  *   P           frame-time readout
  *   V           simulated voice output (drives `speaking` without a voice session)
  *   A           voice preview: talking moves zen → listening, silence moves back
- *               (on by default; picking a state by hand turns it off)
+ *               (on by default while no voice key is set; picking a state turns it off)
+ *   W           wake: start a voice session as if the wake word was heard
  */
 import { ORB_STATES } from '@ephemeralos/shared';
 import type { LevelsSnapshot } from '../audio/audio-levels.ts';
@@ -19,18 +20,22 @@ import { DemoSurface } from './demo-surface.ts';
 export interface DevToolsHost {
   orb: Orb;
   perf: PerfOverlay;
+  /** Start a voice session, if voice is set up. */
+  wake(): void;
 }
 
 export interface DevTools {
   /** Overlay simulated output levels onto the live snapshot. */
   decorate(levels: LevelsSnapshot, now: number): void;
+  /** Real voice drives the orb once it's available, so the preview steps aside. */
+  setVoiceAvailable(available: boolean): void;
 }
 
 /** Mic level that counts as talking, and how long silence lasts before zen returns. */
 const PREVIEW_THRESHOLD = 0.3;
 const PREVIEW_HANG_MS = 1500;
 
-export function installDevTools({ orb, perf }: DevToolsHost): DevTools {
+export function installDevTools({ orb, perf, wake }: DevToolsHost): DevTools {
   let simulateVoice = true;
   let voicePreview = true;
   let lastVoice = -Infinity;
@@ -53,6 +58,7 @@ export function installDevTools({ orb, perf }: DevToolsHost): DevTools {
     else if (event.key === 'd') demo.toggle();
     else if (event.key === 'p') perf.toggle();
     else if (event.key === 'v') simulateVoice = !simulateVoice;
+    else if (event.key === 'w') wake();
     else return;
     event.preventDefault();
     console.info(
@@ -61,10 +67,15 @@ export function installDevTools({ orb, perf }: DevToolsHost): DevTools {
   });
 
   console.info(
-    '[dev] orb shortcuts: Space/←/→ cycle, 1–5 pick, A preview, D card, P perf, V voice',
+    '[dev] orb shortcuts: Space/←/→ cycle, 1–5 pick, A preview, D card, P perf, V voice, W wake',
   );
 
   return {
+    setVoiceAvailable(available) {
+      if (!available) return;
+      voicePreview = false;
+      simulateVoice = false;
+    },
     decorate(levels, now) {
       if (voicePreview && (orb.state === 'zen' || orb.state === 'listening')) {
         if (levels.input > PREVIEW_THRESHOLD) {

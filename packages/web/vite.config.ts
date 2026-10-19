@@ -1,5 +1,5 @@
 import { defineConfig, type Plugin } from 'vite';
-import { TOKEN_META_NAME, WS_PATH } from '@ephemeralos/shared';
+import { MODELS_PATH, TOKEN_META_NAME, WS_PATH } from '@ephemeralos/shared';
 
 const GATEWAY = `http://127.0.0.1:${process.env.EOS_PORT ?? 4317}`;
 
@@ -27,15 +27,20 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    // Everything but the page itself comes from the gateway, as it does in production.
     proxy: {
       [WS_PATH]: { target: GATEWAY, ws: true },
+      '/api/': GATEWAY,
+      [MODELS_PATH]: GATEWAY,
     },
   },
+  worker: { format: 'es' },
+  // onnxruntime-web locates its WebAssembly itself; pre-bundling would break that.
+  optimizeDeps: { exclude: ['onnxruntime-web'] },
   build: {
     target: 'es2023',
     assetsInlineLimit: 0,
-    // three.js + postprocessing is one ~700 kB chunk served from localhost; splitting
-    // it buys nothing here.
+    // three.js is one large chunk served from localhost; splitting it buys nothing here.
     chunkSizeWarningLimit: 800,
   },
 });

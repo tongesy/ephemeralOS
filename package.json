@@ -12,13 +12,14 @@
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "build": "pnpm -r run build",
-    "start": "pnpm --filter @ephemeralos/gateway start",
+    "start": "node packages/cli/bin/ephemeralos.mjs start",
     "typecheck": "pnpm -r run typecheck",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "ephemeralos": "node packages/cli/bin/ephemeralos.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -16,15 +16,18 @@ const MIME: Record<string, string> = {
   '.wasm': 'application/wasm',
 };
 
-// Fonts are self-hosted and Realtime traffic is WebRTC to OpenAI, so the page needs
-// nothing else. connect-src/media rules widen in M2 when the voice session lands.
+// Fonts are self-hosted. The page talks to the gateway and, for the voice session, to
+// OpenAI (SDP exchange; the audio itself is WebRTC). The wake word runs ONNX models in
+// WebAssembly, which needs 'wasm-unsafe-eval' (it does not allow JavaScript eval).
 const CSP = [
   "default-src 'self'",
-  "script-src 'self'",
+  "script-src 'self' 'wasm-unsafe-eval'",
+  "worker-src 'self'",
+  "media-src 'self' blob: mediastream:",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self'",
   "img-src 'self' data: blob:",
-  "connect-src 'self'",
+  "connect-src 'self' https://api.openai.com",
   "object-src 'none'",
   "base-uri 'none'",
   "frame-ancestors 'none'",

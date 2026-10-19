@@ -7,6 +7,9 @@ import './styles/surface.css';
 import { AudioLevels } from './audio/audio-levels.ts';
 import type { DevTools } from './dev/dev-tools.ts';
 import { GatewayClient } from './gateway-client.ts';
+import { connectRealtime } from './voice/realtime-client.ts';
+import { VoiceSession } from './voice/voice-session.ts';
+import { WakeWord } from './wake/wake-word.ts';
 import { Orb } from './orb/orb.ts';
 import { FrameMeter, QualityGovernor } from './perf/frame-meter.ts';
 import { PerfOverlay } from './perf/perf-overlay.ts';
@@ -29,10 +32,12 @@ const quality = new QualityGovernor(maxRatio, maxRatio, (ratio) => orb.setPixelR
 
 if (new URLSearchParams(location.search).has('perf')) perf.toggle(true);
 
+let voice: VoiceSession | null = null;
+
 let devTools: DevTools | null = null;
 if (import.meta.env.DEV) {
   const { installDevTools } = await import('./dev/dev-tools.ts');
-  devTools = installDevTools({ orb, perf });
+  devTools = installDevTools({ orb, perf, wake: () => void voice?.start() });
 }
 
 window.addEventListener('resize', () => orb.resize());
@@ -56,23 +61,22 @@ const unlock = (): void => {
 window.addEventListener('pointerdown', unlock, { once: true });
 window.addEventListener('keydown', unlock, { once: true });
 
-async function startAudio(): Promise<void> {
+async function startAudio(): Promise<boolean> {
   try {
     await audio.attachMicrophone();
   } catch (error) {
     console.warn('[audio] microphone unavailable:', error);
     orb.setState('error');
     showHint('Microphone access is needed. Allow it in the address bar, then reload.');
-    return;
+    return false;
   }
   // Some browsers allow audio once the microphone is granted; try before asking for a click.
   await audio.resume().catch(() => undefined);
   if (!audio.running) showHint('Click once to let me hear you');
+  return true;
 }
 
-void startAudio();
-
-// --- Gateway ---------------------------------------------------------------
+// --- Gateway -----------------------------------------------------------------
 const gateway = GatewayClient.fromPage();
 if (gateway) {
   gateway.onMessage((msg) => {
@@ -82,6 +86,83 @@ if (gateway) {
 } else {
   console.warn('[gateway] no launch token on the page; start with `pnpm dev` or `pnpm start`');
 }
+
+// --- Voice: wake word → Realtime session → sleep ---------------------------------
+/** Plays the voice. An <audio> element (not Web Audio) so the browser's echo canceller hears it. */
+const player = new Audio();
+player.autoplay = true;
+
+function speakLocally(text: string): void {
+  if (!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+}
+
+async function startVoice(gateway: GatewayClient): Promise<void> {
+  const status = await gateway.fetchStatus();
+  if (!status.voice) {
+    console.info('[voice] no OpenAI key yet; run `pnpm ephemeralos init` to add one');
+    return;
+  }
+  const microphone = audio.microphone!;
+  let wake: WakeWord | null = null;
+  let sessionId = '';
+
+  voice = new VoiceSession({
+    settings: status,
+    setState: (state) => {
+      if (state !== orb.state) console.debug(`[voice] ${state}`);
+      orb.setState(state);
+    },
+    connect: async (handlers) => {
+      sessionId = crypto.randomUUID();
+      const session = await gateway.realtimeSession();
+      return connectRealtime(
+        session.clientSecret,
+        microphone.stream.getAudioTracks()[0]!,
+        handlers,
+      );
+    },
+    callTool: (callId, name, args) => gateway.callTool(callId, name, args),
+    transcript: (role, text) => gateway.send({ type: 'transcript', sessionId, role, text }),
+    speakFallback: speakLocally,
+    audio: (stream) => {
+      player.srcObject = stream;
+      if (stream) audio.attachOutput(audio.context.createMediaStreamSource(stream));
+      else audio.detachOutput();
+    },
+    ended: () => wake?.listen(true),
+  });
+  devTools?.setVoiceAvailable(true);
+
+  const begin = (): void => {
+    wake?.listen(false);
+    void voice?.start();
+  };
+
+  if (status.wakeWord.available) {
+    try {
+      wake = await WakeWord.start(audio.context, microphone.source, status.wakeWord);
+      wake.onWake(begin);
+      console.info(`[voice] listening for "${status.wakeWord.phrase}"`);
+      return;
+    } catch (error) {
+      console.warn('[wake] could not start; falling back to click-to-talk', error);
+    }
+  } else {
+    console.info('[voice] wake-word models not installed; click to talk');
+  }
+  // Without a wake word, the one permitted click doubles as push-to-start.
+  window.addEventListener('pointerdown', () => {
+    if (audio.running && !voice?.active) begin();
+  });
+}
+
+void startAudio().then((ok) => {
+  if (ok && gateway) {
+    startVoice(gateway).catch((error: unknown) => console.warn('[voice] unavailable:', error));
+  }
+});
 
 // --- Frame loop --------------------------------------------------------------
 let last = performance.now();
