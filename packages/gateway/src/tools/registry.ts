@@ -40,7 +40,10 @@ export class ToolRegistry {
       return JSON.stringify({ error: 'Arguments were not valid JSON' });
     }
     try {
-      return JSON.stringify((await tool.run(args, context)) ?? { ok: true });
+      const result = (await tool.run(args, context)) ?? { ok: true };
+      const failure = (result as { error?: unknown }).error;
+      if (typeof failure === 'string') console.warn(`[tools] ${name}: ${failure}`);
+      return JSON.stringify(result);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.warn(`[tools] ${name} failed: ${message}`);

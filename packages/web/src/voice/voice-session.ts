@@ -213,7 +213,9 @@ export class VoiceSession {
       return;
     }
     this.deps.setState('thinking');
+    console.info(`[voice] tool ${call.name} ${call.arguments}`);
     const output = await this.deps.callTool(call.call_id, call.name, call.arguments);
+    console.info(`[voice] tool ${call.name} → ${output.slice(0, 300)}`);
     this.reply(call.call_id, output, true);
   }
 
