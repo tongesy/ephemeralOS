@@ -6,6 +6,7 @@ import {
   ClientMessage,
   LOGOS_PATH,
   MODELS_PATH,
+  PHOTOS_PATH,
   PROTOCOL_VERSION,
   TOKEN_HEADER,
   WS_PATH,
@@ -15,7 +16,9 @@ import {
 import { handleApi, serveModel } from './api.ts';
 import type { GatewayConfig } from './config.ts';
 import { allowedHosts, sendJson, tokensMatch } from './http.ts';
-import { createLogoService, serveLogo } from './logos.ts';
+import { serveImage } from './images/image-cache.ts';
+import { createLogoService } from './images/logos.ts';
+import { createPhotoService } from './images/photos.ts';
 import { serveStatic } from './static.ts';
 import { defaultTools } from './tools/index.ts';
 import type { ToolRegistry } from './tools/registry.ts';
@@ -52,6 +55,7 @@ export async function startGateway(config: GatewayOptions): Promise<Gateway> {
   const tools = config.tools ?? defaultTools({ homeDir: config.homeDir, fetch: config.fetch });
   const api = { homeDir: config.homeDir, tools, fetch: config.fetch };
   const logos = createLogoService({ homeDir: config.homeDir, fetch: config.fetch });
+  const photos = createPhotoService({ homeDir: config.homeDir, fetch: config.fetch });
 
   const port = (): number => (server.address() as AddressInfo).port;
   const origins = (): Set<string> =>
@@ -91,7 +95,11 @@ export async function startGateway(config: GatewayOptions): Promise<Gateway> {
       return;
     }
     if (req.method === 'GET' && path.startsWith(LOGOS_PATH)) {
-      void serveLogo(logos, req, path, res);
+      void serveImage(logos.get, req, path.slice(LOGOS_PATH.length), res);
+      return;
+    }
+    if (req.method === 'GET' && path.startsWith(PHOTOS_PATH)) {
+      void serveImage(photos.get, req, path.slice(PHOTOS_PATH.length), res);
       return;
     }
     if (webRoot && (req.method === 'GET' || req.method === 'HEAD')) {

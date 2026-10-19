@@ -3,6 +3,7 @@ import type { DisplayRequest } from '@ephemeralos/shared';
 import { formatTick, niceScale } from '../src/display/chart.ts';
 import { DisplayStack } from '../src/display/display-stack.ts';
 import { parseInline, parseMarkdown } from '../src/display/markdown.ts';
+import { isNumericColumn, ranksItself } from '../src/display/table-layout.ts';
 
 const card = (id?: string, body = 'x'): DisplayRequest => ({
   id,
@@ -81,5 +82,23 @@ describe('chart scale', () => {
     expect(formatTick(1500, 500)).toBe('1500');
     expect(formatTick(25_000, 5000)).toBe('25k');
     expect(formatTick(0.25, 0.05)).toBe('0.25');
+  });
+});
+
+describe('table layout', () => {
+  const rows = [
+    [1, 'Manchester City', '-4', '21'],
+    [2, 'Arsenal', '+6', '18%'],
+  ];
+
+  it('right-aligns numbers, including numbers written as text', () => {
+    expect([0, 1, 2, 3].map((c) => isNumericColumn(rows, c))).toEqual([true, false, true, true]);
+  });
+
+  it('numbers rows only when the table does not already rank them', () => {
+    expect(ranksItself('Pos', rows)).toBe(true);
+    expect(ranksItself('#', [['1.'], ['2.']])).toBe(true);
+    expect(ranksItself('Played', [[1], [2]])).toBe(false);
+    expect(ranksItself('Pos', [[2], [1]])).toBe(false);
   });
 });

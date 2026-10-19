@@ -47,6 +47,27 @@ const Domain = z
   .max(253)
   .refine((d) => logoDomain(d) === d, 'must be a bare public domain, like "arsenal.com"');
 
+/** URL path the gateway serves photos on: `/photos/<Wikipedia article title>`. */
+export const PHOTOS_PATH = '/photos/';
+
+/**
+ * The Wikipedia article title a photo can be looked up for ("Erling Haaland"), tidied,
+ * or null. Titles only: nothing that could be read as a path, query or markup.
+ */
+export function photoTitle(raw: string): string | null {
+  const title = raw.trim().replace(/_/g, ' ').replace(/\s+/g, ' ');
+  // eslint-disable-next-line no-control-regex -- refusing control characters
+  return title.length > 0 && title.length <= 200 && !/[/#?|<>[\]{}\\%\x00-\x1f]/.test(title)
+    ? title
+    : null;
+}
+
+/** A person, place or thing with a Wikipedia article, for its photo. */
+const Photo = z
+  .string()
+  .max(200)
+  .refine((t) => photoTitle(t) === t, 'must be a Wikipedia article title, like "Erling Haaland"');
+
 /** One of the bundled icons (Phosphor, light), drawn in the palette. */
 const Icon = z.enum(ICON_NAMES);
 
@@ -88,6 +109,9 @@ export const DisplayArgs = z.object({
     .optional()
     .describe('card: short Markdown (paragraphs, **bold**, *italic*, - bullets)'),
   image_url: ImageUrl.optional().describe('card: optional https image'),
+  photo: Photo.optional().describe(
+    'card: the English Wikipedia article title of who or what it is about, for a photo',
+  ),
   items: z.array(ListItem).min(1).max(30).optional().describe('list: shown numbered'),
   columns: z.array(z.string().max(60)).min(1).max(8).optional().describe('table: headers'),
   rows: z.array(z.array(Cell).max(8)).min(1).max(50).optional().describe('table: shown numbered'),
@@ -126,7 +150,7 @@ export type DisplayArgs = z.infer<typeof DisplayArgs>;
 
 /** A validated display call, narrowed to what its component needs. */
 export type DisplayContent =
-  | { component: 'card'; body: string; imageUrl?: string }
+  | { component: 'card'; body: string; imageUrl?: string; photo?: string }
   | { component: 'list'; items: z.infer<typeof ListItem>[] }
   | {
       component: 'table';
@@ -177,7 +201,15 @@ export function parseDisplay(
       if (!a.body) return missing('body');
       return {
         ok: true,
-        value: { ...base, content: { component: 'card', body: a.body, imageUrl: a.image_url } },
+        value: {
+          ...base,
+          content: {
+            component: 'card',
+            body: a.body,
+            ...(a.image_url && { imageUrl: a.image_url }),
+            ...(a.photo && { photo: a.photo }),
+          },
+        },
       };
     case 'list':
       if (!a.items) return missing('items');

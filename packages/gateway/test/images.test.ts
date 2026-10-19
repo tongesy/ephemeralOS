@@ -1,9 +1,11 @@
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, readdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { logoDomain } from '@ephemeralos/shared';
-import { createLogoService, logoSources, sniffImage } from '../src/logos.ts';
+import { sniffImage } from '../src/images/image-cache.ts';
+import { createLogoService, logoSources } from '../src/images/logos.ts';
+import { createPhotoService, photoSources } from '../src/images/photos.ts';
 import { startGateway, type Gateway } from '../src/server.ts';
 
 /** A PNG signature padded past the placeholder threshold. */
@@ -69,7 +71,7 @@ describe('logo service', () => {
     const logo = await logos.get('arsenal.com');
     expect(logo?.type).toBe('image/png');
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(new Uint8Array(await readFile(join(dir, 'cache', 'logos', 'arsenal.com')))).toEqual(PNG);
+    expect(await readdir(join(dir, 'cache', 'logos'))).toHaveLength(1);
 
     await logos.get('arsenal.com');
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -86,6 +88,39 @@ describe('logo service', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(await logos.get('../../etc/passwd')).toBeNull();
     expect(await logos.get('169.254.169.254')).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('photos', () => {
+  const thumb =
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Haaland.jpg/330px-Haaland.jpg';
+
+  it('takes the lead image from a Wikipedia summary, larger when it can', () => {
+    expect(photoSources({ type: 'standard', thumbnail: { source: thumb } })).toEqual([
+      thumb.replace('330px', '640px'),
+      thumb,
+    ]);
+    expect(photoSources({ type: 'disambiguation', thumbnail: { source: thumb } })).toEqual([]);
+    expect(photoSources({ thumbnail: { source: 'https://evil.example/x.jpg' } })).toEqual([]);
+    expect(photoSources({ title: 'No image' })).toEqual([]);
+  });
+
+  it('looks the title up on Wikipedia, says who is asking, and checks the image', async () => {
+    const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, ...new Array(2000).fill(0)]);
+    const fetchMock = vi.fn(async (url: string | URL) =>
+      String(url).startsWith('https://en.wikipedia.org/api/rest_v1/page/summary/Erling_Haaland')
+        ? Response.json({ type: 'standard', thumbnail: { source: thumb } })
+        : new Response(JPEG),
+    );
+    const photos = createPhotoService({
+      homeDir: await home(),
+      fetch: fetchMock as unknown as typeof fetch,
+    });
+    expect((await photos.get('Erling Haaland'))?.type).toBe('image/jpeg');
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(init.headers).toMatchObject({ 'User-Agent': expect.stringContaining('ephemeralOS') });
+    expect(await photos.get('../etc/passwd')).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

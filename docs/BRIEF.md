@@ -42,7 +42,8 @@
 >   ~140 bundled icons ([Phosphor](https://phosphoricons.com), MIT, light weight), or an
 >   https image it read. Logos come through the gateway (`/logos/<domain>`, cached in
 >   `~/.ephemeralos/cache`), so the page loads nothing from third parties; site icons need
->   no key, and an optional logo.dev key gives sharper logos.
+>   no key, and an optional logo.dev key gives sharper logos. A card about a person, place or
+  thing shows the lead photo of its Wikipedia article (`/photos/<title>`), the same way.
 > - A gateway tool that is still running keeps the session open and the orb thinking, so
 >   a slow answer is always spoken before the screen fades.
 >
