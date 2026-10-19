@@ -120,6 +120,15 @@
   }
 }
 
+/* The artwork's stand-in while the player moves between stage and corner. */
+.media__ghost {
+  position: fixed;
+  z-index: 3;
+  margin: 0;
+  transform-origin: top left;
+  pointer-events: none;
+}
+
 /* --- A podcast, settled in the corner ----------------------------------------------- */
 
 .media--audio.is-docked {

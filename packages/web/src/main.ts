@@ -72,6 +72,8 @@ const display = new DisplayManager(
     occupy();
   },
   (scene) => backdrop.set(scene),
+  // A podcast on stage collapses into the corner first; the new card follows it in.
+  () => (media.onStage ? 380 : 0),
 );
 
 /** Tools the voice model calls that act on this page directly. */
@@ -219,6 +221,7 @@ async function startVoice(gateway: GatewayClient): Promise<void> {
       if (state !== orb.state) console.debug(`[voice] ${state}`);
       orb.setState(state);
       labelOrb(state);
+      media.setVoiceState(state);
     },
     connect: async (handlers) => {
       sessionId = crypto.randomUUID();
