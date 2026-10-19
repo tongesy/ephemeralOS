@@ -104,3 +104,23 @@ every other knob (cloud cover, haze, rain, snow, drops, storm) is in the look ta
 [`scene/scene-look.ts`](../packages/web/src/scene/scene-look.ts), set from the weather code,
 how heavy it is, day or night, and the wind. Changes between weathers ease over about a
 second. With `prefers-reduced-motion`, everything moves at 30% and lightning is softened.
+
+The weather is drawn on its own canvas beneath everything; the orb has a transparent canvas
+above it all, so it is never hidden by a picture.
+
+## Editorial layouts
+
+When a picture tells it best, a surface is laid out like a magazine spread rather than a
+glass card ([`display/editorial.ts`](../packages/web/src/display/editorial.ts),
+[`styles/editorial.css`](../packages/web/src/styles/editorial.css)):
+
+- **Hero:** one photo full bleed, a small uppercase kicker, the headline set large over it
+  and a short dek, on a soft ink scrim from the bottom left so the type always reads.
+- **Gallery:** a mosaic of up to eight, the first picture large and the rest arranged by
+  count, each captioned over a gradient.
+- **Slideshow:** one picture at a time, full screen. Each slide drifts slowly (Ken Burns,
+  alternating direction) and crossfades into the next every 6.5 s; the old caption leaves
+  before the new one arrives. "Next" and "back" step through the slides first.
+
+Photos develop in once they have loaded rather than popping in. A hero whose picture fails
+becomes an ordinary glass card. With `prefers-reduced-motion` the drift stops.

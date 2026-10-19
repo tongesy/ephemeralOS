@@ -87,7 +87,8 @@ week?" and you hear a short summary while the forecast appears as a table. Weath
 
 For anything current, such as the news, prices or scores, the orb searches the web. It says a
 line or two and shows what it found in whatever layout fits: a league table with club logos,
-a list of headlines, a price chart. Nothing is designed per topic; the layout is generated
+a list of headlines, a price chart, a full-screen photo with the headline set over it, or a
+gallery or slideshow of pictures ("next" moves through a slideshow). Nothing is designed per topic; the layout is generated
 each time and fades. Searches use Claude when you've given `init` an Anthropic key, and
 OpenAI otherwise; set the models in `config.json` under `brain`.
 

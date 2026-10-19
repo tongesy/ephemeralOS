@@ -11,7 +11,7 @@ import { ICON_NAMES } from './icons.ts';
  * present for the chosen component.
  */
 
-export const DISPLAY_COMPONENTS = ['card', 'list', 'table', 'chart'] as const;
+export const DISPLAY_COMPONENTS = ['card', 'list', 'table', 'chart', 'hero', 'gallery'] as const;
 export type DisplayComponent = (typeof DISPLAY_COMPONENTS)[number];
 
 /** An image the page may load: https only, so nothing local or scripted. */
@@ -79,6 +79,16 @@ const ListItem = z.object({
   icon: Icon.optional().describe('A bundled icon beside the item, when no image fits'),
 });
 
+/** A picture in a gallery: a Wikipedia article's photo, or an https image, and a caption. */
+const GalleryImage = z
+  .object({
+    photo: Photo.optional().describe('The English Wikipedia article title it shows'),
+    image_url: ImageUrl.optional(),
+    caption: z.string().max(160).optional(),
+  })
+  .refine((i) => i.photo || i.image_url, 'needs a photo or an image_url');
+export type GalleryImage = z.infer<typeof GalleryImage>;
+
 const Cell = z.union([z.string().max(200), z.number()]);
 
 const ChartSeries = z.object({
@@ -134,9 +144,10 @@ export const DisplayArgs = z.object({
     .max(4000)
     .optional()
     .describe('card: short Markdown (paragraphs, **bold**, *italic*, - bullets)'),
-  image_url: ImageUrl.optional().describe('card: optional https image'),
+  kicker: z.string().max(40).optional().describe('hero: a word or two above the title'),
+  image_url: ImageUrl.optional().describe('card or hero: optional https image'),
   photo: Photo.optional().describe(
-    'card: the English Wikipedia article title of who or what it is about, for a photo',
+    'card or hero: the English Wikipedia article title of who or what it is about, for a photo',
   ),
   items: z.array(ListItem).min(1).max(30).optional().describe('list: shown numbered'),
   columns: z.array(z.string().max(60)).min(1).max(8).optional().describe('table: headers'),
@@ -164,6 +175,11 @@ export const DisplayArgs = z.object({
     .optional()
     .describe('table: which column (from 0) the row logos and icons sit in; default 0'),
   chart: Chart.optional().describe('chart: the data to plot'),
+  images: z.array(GalleryImage).min(1).max(8).optional().describe('gallery: the pictures'),
+  slideshow: z
+    .boolean()
+    .optional()
+    .describe('gallery: one picture at a time, full screen, moving on by itself'),
   scene: Scene.optional().describe('weather only: turn the page into the weather right now'),
   ttl_seconds: z
     .number()
@@ -188,7 +204,9 @@ export type DisplayContent =
       rowIcons?: string[];
       iconColumn?: number;
     }
-  | { component: 'chart'; chart: Chart };
+  | { component: 'chart'; chart: Chart }
+  | { component: 'hero'; body?: string; kicker?: string; photo?: string; imageUrl?: string }
+  | { component: 'gallery'; images: GalleryImage[]; slideshow: boolean };
 
 export interface DisplayRequest {
   id?: string;
@@ -205,6 +223,8 @@ export const DEFAULT_TTL_SECONDS: Record<DisplayComponent, number> = {
   list: 120,
   table: 180,
   chart: 120,
+  hero: 90,
+  gallery: 150,
 };
 
 /** Validate a display call. Errors are phrased for the model, so it can correct itself. */
@@ -285,6 +305,30 @@ export function parseDisplay(
         };
       return { ok: true, value: { ...base, content: { component: 'chart', chart: a.chart } } };
     }
+    case 'hero':
+      if (!a.photo && !a.image_url) return missing('photo or image_url');
+      return {
+        ok: true,
+        value: {
+          ...base,
+          content: {
+            component: 'hero',
+            ...(a.body && { body: a.body }),
+            ...(a.kicker && { kicker: a.kicker }),
+            ...(a.photo && { photo: a.photo }),
+            ...(a.image_url && { imageUrl: a.image_url }),
+          },
+        },
+      };
+    case 'gallery':
+      if (!a.images) return missing('images');
+      return {
+        ok: true,
+        value: {
+          ...base,
+          content: { component: 'gallery', images: a.images, slideshow: a.slideshow ?? false },
+        },
+      };
   }
 }
 

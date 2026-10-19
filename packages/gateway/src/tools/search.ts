@@ -47,6 +47,15 @@ Layouts:
    "photo": "Erling Haaland"}
   For a card about a person, place, team, building or thing, set "photo" to the exact title
   of its English Wikipedia article; its photo is shown beside the text.
+- Hero, when one striking photo tells it best (a place, a landmark, a story, a person in the
+  news), shown full screen with the title over it:
+  {"component": "hero", "photo": "Tromsø", "kicker": "Travel",
+   "body": "One or two short sentences under the headline"}
+- Gallery, when the user wants to see things (photos of a place, buildings, artworks, animals):
+  {"component": "gallery", "images": [{"photo": "Arctic Cathedral", "caption": "…"}],
+   "slideshow": false}
+  Up to eight. Use "slideshow": true for a sequence to watch, false for a mosaic.
+  "photo" is always the exact title of an English Wikipedia article that has a photo.
 
 Keep it short: at most 12 rows, 6 columns or 8 items. Use numbers (not strings) for numeric cells.
 Give rows and items a mark whenever one fits (at most one each, "" for none):

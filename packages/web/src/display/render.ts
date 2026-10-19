@@ -1,6 +1,7 @@
 import { LOGOS_PATH, PHOTOS_PATH, type DisplayRequest, type IconName } from '@ephemeralos/shared';
 import { renderChart } from './chart.ts';
 import { ICON_PATHS } from './icon-paths.ts';
+import { renderGallery, renderHero } from './editorial.ts';
 import { renderMarkdown } from './markdown.ts';
 import { isNumericColumn, ranksItself } from './table-layout.ts';
 
@@ -78,9 +79,10 @@ function glyph(name: string): SVGSVGElement | null {
 export function renderSurface(request: DisplayRequest): HTMLElement {
   const { content } = request;
   const section = document.createElement('section');
-  section.className = `surface surface--${content.component} glass`;
+  const editorial = content.component === 'hero' || content.component === 'gallery';
+  section.className = `surface surface--${content.component}${editorial ? ' editorial' : ' glass'}`;
   section.setAttribute('aria-live', 'polite');
-  if (request.title) section.append(text('h2', 'surface__title', request.title));
+  if (request.title && !editorial) section.append(text('h2', 'surface__title', request.title));
 
   switch (content.component) {
     case 'card': {
@@ -158,6 +160,12 @@ export function renderSurface(request: DisplayRequest): HTMLElement {
     }
     case 'chart':
       section.append(renderChart(content.chart));
+      break;
+    case 'hero':
+      renderHero(section, request.title, content);
+      break;
+    case 'gallery':
+      renderGallery(section, request.title, content.images, content.slideshow);
       break;
   }
   if (request.source) section.append(text('p', 'surface__source', request.source));

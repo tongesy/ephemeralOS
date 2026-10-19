@@ -3,16 +3,18 @@ import {
   HalfFloatType,
   LinearFilter,
   Mesh,
+  NoBlending,
+  NoToneMapping,
   OrthographicCamera,
   PlaneGeometry,
   Scene as ThreeScene,
   ShaderMaterial,
   Vector2,
+  WebGLRenderer,
   WebGLRenderTarget,
-  type Texture,
-  type WebGLRenderer,
 } from 'three';
 import vertexShader from '../orb/orb.vert.glsl?raw';
+import compositeShader from './backdrop.frag.glsl?raw';
 import { approachLook, createSceneLook, sceneLook, type SceneLook } from './scene-look.ts';
 import fragmentShader from './weather.frag.glsl?raw';
 
@@ -24,11 +26,18 @@ const FADE_MS = 1800;
 const CHANGE_MS = 900;
 
 /**
- * The page as the weather outside. It renders into a texture the orb pass reads as its
- * background, fades in when a weather surface is shown, and back to paper when it goes.
- * Lightning is timed here, so the shader only reads a flash level.
+ * The page as the weather outside, on its own canvas beneath everything on screen. The sky
+ * renders at half resolution into a texture; a second pass draws it to the canvas with
+ * raindrops on the glass at full resolution. It fades in when a weather surface is shown
+ * and back to paper (the page's own background, beneath the canvas) when it goes; at rest
+ * it draws nothing at all. Lightning is timed here, so the shader only reads a flash level.
  */
 export class Backdrop {
+  private readonly renderer: WebGLRenderer;
+  private readonly composite: ShaderMaterial;
+  private readonly screen = new ThreeScene();
+  /** The canvas was last cleared at rest, so there's nothing to redraw until the next scene. */
+  private blank = false;
   private readonly target = new WebGLRenderTarget(1, 1, {
     type: HalfFloatType,
     minFilter: LinearFilter,
@@ -48,7 +57,21 @@ export class Backdrop {
   /** How much of the page is the scene, 0 (paper) to 1. */
   mix = 0;
 
-  constructor(private readonly motion: number) {
+  constructor(
+    canvas: HTMLCanvasElement,
+    private readonly motion: number,
+  ) {
+    this.renderer = new WebGLRenderer({
+      canvas,
+      antialias: false,
+      alpha: true,
+      premultipliedAlpha: true,
+      depth: false,
+      stencil: false,
+      powerPreference: 'high-performance',
+    });
+    this.renderer.toneMapping = NoToneMapping;
+    this.renderer.setClearColor(0x000000, 0);
     this.material = new ShaderMaterial({
       vertexShader,
       fragmentShader,
@@ -74,14 +97,26 @@ export class Backdrop {
         uFlash: { value: 0 },
       },
     });
-    this.scene.add(new Mesh(new PlaneGeometry(2, 2), this.material));
+    this.composite = new ShaderMaterial({
+      vertexShader,
+      fragmentShader: compositeShader,
+      depthTest: false,
+      depthWrite: false,
+      blending: NoBlending,
+      uniforms: {
+        uResolution: { value: new Vector2(1, 1) },
+        uTime: { value: 0 },
+        uScene: { value: this.target.texture },
+        uMix: { value: 0 },
+        uDrops: { value: 0 },
+      },
+    });
+    const plane = new PlaneGeometry(2, 2);
+    this.scene.add(new Mesh(plane, this.material));
+    this.screen.add(new Mesh(plane, this.composite));
   }
 
-  get texture(): Texture {
-    return this.target.texture;
-  }
-
-  /** The blended look, for the orb pass (raindrops on the glass). */
+  /** The blended look, for tests and the dev readout. */
   get current(): Readonly<SceneLook> {
     return this.look;
   }
@@ -100,6 +135,11 @@ export class Backdrop {
   }
 
   setSize(width: number, height: number): void {
+    // Drops stay crisp at up to 2× density; beyond that nobody can tell.
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setSize(width, height, true);
+    this.renderer.getDrawingBufferSize(this.composite.uniforms.uResolution!.value as Vector2);
+    this.blank = false;
     const w = Math.max(1, Math.round(width * SCALE));
     const h = Math.max(1, Math.round(height * SCALE));
     this.target.setSize(w, h);
@@ -126,13 +166,25 @@ export class Backdrop {
     u.uSnow!.value = this.look.snow;
     u.uWind!.value = this.look.wind;
     u.uFlash!.value = this.lightning(dtMs / 1000);
+    const c = this.composite.uniforms;
+    c.uTime!.value = this.time;
+    c.uMix!.value = this.mix;
+    c.uDrops!.value = this.look.drops * this.motion;
   }
 
-  render(renderer: WebGLRenderer): void {
-    if (this.mix === 0) return;
-    renderer.setRenderTarget(this.target);
-    renderer.render(this.scene, this.camera);
-    renderer.setRenderTarget(null);
+  render(): void {
+    if (this.mix === 0) {
+      if (this.blank) return;
+      this.renderer.setRenderTarget(null);
+      this.renderer.clear();
+      this.blank = true;
+      return;
+    }
+    this.blank = false;
+    this.renderer.setRenderTarget(this.target);
+    this.renderer.render(this.scene, this.camera);
+    this.renderer.setRenderTarget(null);
+    this.renderer.render(this.screen, this.camera);
   }
 
   /** A flash every few seconds in a storm: a bright strike, a flicker, then a fade. */
@@ -155,5 +207,7 @@ export class Backdrop {
   dispose(): void {
     this.target.dispose();
     this.material.dispose();
+    this.composite.dispose();
+    this.renderer.dispose();
   }
 }

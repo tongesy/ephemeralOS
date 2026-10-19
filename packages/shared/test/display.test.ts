@@ -31,6 +31,37 @@ describe('parseDisplay', () => {
     expect(parseDisplay({ component: 'video' }).ok).toBe(false);
   });
 
+  it('builds heroes and galleries from photos or https images', () => {
+    const hero = parseDisplay({
+      component: 'hero',
+      title: 'Tromsø',
+      kicker: 'Travel',
+      photo: 'Tromsø',
+    });
+    expect(hero).toMatchObject({
+      ok: true,
+      value: { content: { component: 'hero', kicker: 'Travel', photo: 'Tromsø' } },
+    });
+    expect(parseDisplay({ component: 'hero', title: 'Tromsø' })).toMatchObject({ ok: false });
+
+    const gallery = parseDisplay({
+      component: 'gallery',
+      slideshow: true,
+      images: [
+        { photo: 'Arctic Cathedral', caption: 'At dusk' },
+        { image_url: 'https://x.org/a.jpg' },
+      ],
+    });
+    expect(gallery).toMatchObject({
+      ok: true,
+      value: { content: { component: 'gallery', slideshow: true, images: [{}, {}] } },
+    });
+    expect(parseDisplay({ component: 'gallery' })).toMatchObject({ ok: false });
+    expect(parseDisplay({ component: 'gallery', images: [{ caption: 'nothing' }] })).toMatchObject({
+      ok: false,
+    });
+  });
+
   it('rejects non-URL images', () => {
     expect(
       parseDisplay({ component: 'card', body: 'x', image_url: 'javascript:alert(1)' }).ok,

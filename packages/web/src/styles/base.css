@@ -19,12 +19,19 @@ body {
   user-select: none;
 }
 
+/* Two canvases: the weather beneath everything, and the orb floating above it all. */
+#backdrop,
 #orb {
   position: fixed;
   inset: 0;
   width: 100vw;
   height: 100vh;
   display: block;
+  pointer-events: none;
+}
+
+#orb {
+  z-index: 10;
 }
 
 /* The single non-voice moment: asking for microphone access. */

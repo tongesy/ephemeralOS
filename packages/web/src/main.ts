@@ -3,6 +3,7 @@ import '@fontsource-variable/geist-mono';
 import './styles/tokens.css';
 import './styles/base.css';
 import './styles/surface.css';
+import './styles/editorial.css';
 
 import { AudioLevels } from './audio/audio-levels.ts';
 import { playChime } from './audio/chime.ts';
@@ -13,6 +14,7 @@ import { connectRealtime } from './voice/realtime-client.ts';
 import { VoiceSession } from './voice/voice-session.ts';
 import { WakeWord } from './wake/wake-word.ts';
 import { Orb } from './orb/orb.ts';
+import { Backdrop } from './scene/backdrop.ts';
 import { FrameMeter, QualityGovernor } from './perf/frame-meter.ts';
 import { PerfOverlay } from './perf/perf-overlay.ts';
 import { applyPalette } from './theme/palette.ts';
@@ -24,6 +26,12 @@ const hint = document.querySelector<HTMLParagraphElement>('#hint')!;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const orb = new Orb(canvas, { reducedMotion });
+// The weather, when it is showing, beneath everything else on screen.
+const backdrop = new Backdrop(
+  document.querySelector<HTMLCanvasElement>('#backdrop')!,
+  reducedMotion ? 0.3 : 1,
+);
+backdrop.setSize(window.innerWidth, window.innerHeight);
 const audio = new AudioLevels();
 const meter = new FrameMeter();
 const perf = new PerfOverlay();
@@ -39,7 +47,7 @@ let voice: VoiceSession | null = null;
 /** The screen: content fades in and out; the orb moves into whatever space is left. */
 const display = new DisplayManager(
   (occupied) => orb.setOccupied(occupied),
-  (scene) => orb.setScene(scene),
+  (scene) => backdrop.set(scene),
 );
 
 /** Tools the voice model calls that act on this page directly. */
@@ -60,7 +68,10 @@ if (import.meta.env.DEV) {
   devTools = installDevTools({ orb, perf, display, wake: () => void voice?.start() });
 }
 
-window.addEventListener('resize', () => orb.resize());
+window.addEventListener('resize', () => {
+  orb.resize();
+  backdrop.setSize(window.innerWidth, window.innerHeight);
+});
 
 // --- Microphone: the one permitted click --------------------------------------
 function showHint(text: string | null): void {
@@ -233,6 +244,8 @@ function tick(now: number): void {
 
   const levels = audio.update(dt);
   devTools?.decorate(levels, now);
+  backdrop.update(dt);
+  backdrop.render();
   orb.frame(dt, levels);
 
   meter.record(dt);

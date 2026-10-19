@@ -86,4 +86,32 @@ export const DEMO_DISPLAYS: DisplayArgs[] = [
       unit: '°C',
     },
   },
+  {
+    component: 'hero',
+    kicker: 'Travel',
+    title: 'Tromsø under the northern lights',
+    photo: 'Tromsø',
+    body: 'The Arctic city where the sun doesn’t set in summer, and the aurora fills winter nights.',
+  },
+  {
+    component: 'gallery',
+    title: 'Tromsø in pictures',
+    images: [
+      { photo: 'Tromsø', caption: 'The city from Storsteinen' },
+      { photo: 'Arctic Cathedral', caption: 'The Arctic Cathedral' },
+      { photo: 'Tromsø Bridge', caption: 'Tromsø Bridge' },
+      { photo: 'Aurora', caption: 'The aurora over the fjord' },
+      { photo: 'Polaria', caption: 'Polaria' },
+    ],
+  },
+  {
+    component: 'gallery',
+    title: 'A winter evening in Tromsø',
+    slideshow: true,
+    images: [
+      { photo: 'Aurora', caption: 'The aurora over the fjord' },
+      { photo: 'Arctic Cathedral', caption: 'The Arctic Cathedral at dusk' },
+      { photo: 'Tromsø', caption: 'Lights along the harbour' },
+    ],
+  },
 ];
