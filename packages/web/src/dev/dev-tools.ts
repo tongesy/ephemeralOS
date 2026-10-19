@@ -4,7 +4,7 @@
  *
  *   Space / →   next state        ←   previous state
  *   1–5         zen, listening, thinking, speaking, error
- *   D           show / hide a demo card (the orb moves into open space)
+ *   D           show each display component in turn, then clear (the orb moves aside)
  *   P           frame-time readout
  *   V           simulated voice output (drives `speaking` without a voice session)
  *   A           voice preview: talking moves zen → listening, silence moves back
@@ -15,11 +15,13 @@ import { ORB_STATES } from '@ephemeralos/shared';
 import type { LevelsSnapshot } from '../audio/audio-levels.ts';
 import type { Orb } from '../orb/orb.ts';
 import type { PerfOverlay } from '../perf/perf-overlay.ts';
-import { DemoSurface } from './demo-surface.ts';
+import type { DisplayManager } from '../display/display-manager.ts';
+import { DEMO_DISPLAYS } from './demo-displays.ts';
 
 export interface DevToolsHost {
   orb: Orb;
   perf: PerfOverlay;
+  display: DisplayManager;
   /** Start a voice session, if voice is set up. */
   wake(): void;
 }
@@ -35,11 +37,16 @@ export interface DevTools {
 const PREVIEW_THRESHOLD = 0.3;
 const PREVIEW_HANG_MS = 1500;
 
-export function installDevTools({ orb, perf, wake }: DevToolsHost): DevTools {
+export function installDevTools({ orb, perf, display, wake }: DevToolsHost): DevTools {
   let simulateVoice = true;
   let voicePreview = true;
   let lastVoice = -Infinity;
-  const demo = new DemoSurface((occupied) => orb.setOccupied(occupied));
+  let demo = -1;
+  const nextDemo = (): void => {
+    demo = demo + 1 > DEMO_DISPLAYS.length - 1 ? -1 : demo + 1;
+    if (demo < 0) display.screen({ action: 'dismiss_all' });
+    else display.display(DEMO_DISPLAYS[demo]);
+  };
 
   const step = (delta: number): void => {
     const i = ORB_STATES.indexOf(orb.state);
@@ -55,19 +62,19 @@ export function installDevTools({ orb, perf, wake }: DevToolsHost): DevTools {
     else if (event.key === ' ' || event.key === 'ArrowRight') step(1);
     else if (event.key === 'ArrowLeft') step(-1);
     else if (event.key === 'a') voicePreview = !voicePreview;
-    else if (event.key === 'd') demo.toggle();
+    else if (event.key === 'd') nextDemo();
     else if (event.key === 'p') perf.toggle();
     else if (event.key === 'v') simulateVoice = !simulateVoice;
     else if (event.key === 'w') wake();
     else return;
     event.preventDefault();
     console.info(
-      `[dev] state=${orb.state} card=${demo.shown} voice=${simulateVoice} preview=${voicePreview}`,
+      `[dev] state=${orb.state} display=${demo} voice=${simulateVoice} preview=${voicePreview}`,
     );
   });
 
   console.info(
-    '[dev] orb shortcuts: Space/←/→ cycle, 1–5 pick, A preview, D card, P perf, V voice, W wake',
+    '[dev] orb shortcuts: Space/←/→ cycle, 1–5 pick, A preview, D displays, P perf, V voice, W wake',
   );
 
   return {

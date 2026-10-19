@@ -6,6 +6,7 @@ import './styles/surface.css';
 
 import { AudioLevels } from './audio/audio-levels.ts';
 import type { DevTools } from './dev/dev-tools.ts';
+import { DisplayManager } from './display/display-manager.ts';
 import { GatewayClient } from './gateway-client.ts';
 import { connectRealtime } from './voice/realtime-client.ts';
 import { VoiceSession } from './voice/voice-session.ts';
@@ -34,10 +35,25 @@ if (new URLSearchParams(location.search).has('perf')) perf.toggle(true);
 
 let voice: VoiceSession | null = null;
 
+/** The screen: content fades in and out; the orb moves into whatever space is left. */
+const display = new DisplayManager((occupied) => orb.setOccupied(occupied));
+
+/** Tools the voice model calls that act on this page directly. */
+function localTool(name: string, args: string): string | null {
+  if (name !== 'display' && name !== 'screen') return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(args || '{}');
+  } catch {
+    return JSON.stringify({ error: 'Arguments were not valid JSON' });
+  }
+  return name === 'display' ? display.display(parsed) : display.screen(parsed);
+}
+
 let devTools: DevTools | null = null;
 if (import.meta.env.DEV) {
   const { installDevTools } = await import('./dev/dev-tools.ts');
-  devTools = installDevTools({ orb, perf, wake: () => void voice?.start() });
+  devTools = installDevTools({ orb, perf, display, wake: () => void voice?.start() });
 }
 
 window.addEventListener('resize', () => orb.resize());
@@ -97,6 +113,8 @@ const gateway = GatewayClient.fromPage();
 if (gateway) {
   gateway.onMessage((msg) => {
     if (msg.type === 'welcome') console.info(`[gateway] connected, protocol ${msg.protocol}`);
+    // The gateway can put things on screen too (a forecast, and from M4 the brain's results).
+    if (msg.type === 'display') display.display(msg.args);
   });
   gateway.connect();
 } else {
@@ -143,6 +161,7 @@ async function startVoice(gateway: GatewayClient): Promise<void> {
       );
     },
     callTool: (callId, name, args) => gateway.callTool(callId, name, args),
+    localTool,
     transcript: (role, text) => gateway.send({ type: 'transcript', sessionId, role, text }),
     speakFallback: speakLocally,
     audio: (stream) => {

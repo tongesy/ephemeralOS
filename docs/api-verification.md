@@ -22,6 +22,17 @@ Sources: [Realtime WebRTC guide](https://developers.openai.com/api/docs/guides/r
 [Realtime conversations guide](https://developers.openai.com/api/docs/guides/realtime-conversations),
 [gpt-realtime-2.1 launch coverage](https://www.marktechpost.com/2026/07/06/openai-gpt-realtime-2-1-mini-reasoning-realtime-api/).
 
+## Open-Meteo (weather, M3)
+
+| Topic     | Finding                                                                                                                                                                                                                                         |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Geocoding | `GET https://geocoding-api.open-meteo.com/v1/search?name=…&count=1` returns `results[]` with `name`, `latitude`, `longitude`, `country`, `admin1`.                                                                                              |
+| Forecast  | `GET https://api.open-meteo.com/v1/forecast` with `current=temperature_2m,weather_code`, `daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max`, `timezone=auto`, `forecast_days` (1–16), `temperature_unit`. |
+| Codes     | `weather_code` is a WMO code (0 clear, 1–3 cloud, 45/48 fog, 51–67 drizzle and rain, 71–86 snow, 95–99 thunder).                                                                                                                                |
+| Terms     | No key. Free for non-commercial use under 10,000 calls a day; attribution "Weather data by Open-Meteo.com" (CC BY 4.0).                                                                                                                         |
+
+Sources: [Forecast API](https://open-meteo.com/en/docs), [Geocoding API](https://open-meteo.com/en/docs/geocoding-api), [Terms](https://open-meteo.com/en/terms).
+
 ## Anthropic (brain, M4)
 
 | Topic      | Finding                                                                                                                                                                                                                                                |

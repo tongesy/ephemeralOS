@@ -21,6 +21,10 @@ export const Config = z.object({
       threshold: z.number().min(0.05).max(0.99).default(0.5),
     })
     .prefault({}),
+  /** Where the user is, for the weather and anything local ("Copenhagen", "Austin, TX"). */
+  location: z.string().min(1).max(120).optional(),
+  /** Units for the weather and other measurements. */
+  units: z.enum(['metric', 'imperial']).default('metric'),
   /** Close the voice session after this long with nobody speaking. */
   silenceTimeoutSeconds: z.number().int().min(3).max(120).default(10),
   /** Saying any of these ends the session. Matched loosely (case and punctuation). */

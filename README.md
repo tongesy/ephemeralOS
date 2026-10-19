@@ -18,7 +18,8 @@ Open source, bring your own API keys, local-first.
   <img src="docs/assets/open-space.png" alt="A glass card fades in on the left; the orb has glided into the open space on the right" width="80%">
 </p>
 
-> **Status:** early. The orb (M1) and the voice loop (M2) are here; the display (M3) is next.
+> **Status:** early. The orb (M1), the voice loop (M2) and the display (M3) are here; delegated
+> deep work (M4) is next.
 > See the [roadmap](#roadmap).
 
 ## Principles
@@ -51,6 +52,12 @@ Open <http://localhost:4317> in Chrome and click once to grant the microphone. T
 **"Hey Jarvis"**. Talk normally, interrupt whenever you like, and say "that's all" (or just stop
 talking for ten seconds) to send it back to sleep.
 
+When something is easier to see than hear, it appears on the page: a card, a numbered list, a
+table or a chart. Say "open number two", "next", "back", "scroll down", "make it bigger" or
+"dismiss". Everything fades on its own after a minute or two. Ask "what's the weather this
+week?" and you hear a short summary while the forecast appears as a table. Weather comes from
+[Open-Meteo](https://open-meteo.com), which needs no key; `init` asks where you are.
+
 `init` is the only setup step, and it happens in the terminal: keys are typed there, hidden,
 and saved to `~/.ephemeralos/.env` (mode `600`). They are never typed into, sent to, or spoken
 by the orb. Re-run it any time to change a key; your persona and memory files are never
@@ -76,7 +83,7 @@ In development builds, the keyboard drives the orb so you can see every state:
 | <kbd>Space</kbd> / <kbd>→</kbd> / <kbd>←</kbd> | Next / previous state                                        |
 | <kbd>1</kbd>–<kbd>5</kbd>                      | Zen, listening, thinking, speaking, error                    |
 | <kbd>A</kbd>                                   | Voice preview: talking switches to listening (without a key) |
-| <kbd>D</kbd>                                   | Show or hide a demo card (the orb moves into open space)     |
+| <kbd>D</kbd>                                   | Cycle demo displays: list, card, table, chart, then clear    |
 | <kbd>P</kbd>                                   | Frame-time readout                                           |
 | <kbd>V</kbd>                                   | Toggle simulated voice output (without a key)                |
 | <kbd>W</kbd>                                   | Wake: start a voice session without saying the wake word     |
@@ -120,7 +127,7 @@ transcripts (`transcripts/YYYY-MM-DD.jsonl`) stay in `~/.ephemeralos/`.
 - [x] **M0** Scaffold: workspace, gateway, tokens, type, CI
 - [x] **M1** The orb: plasma, five states, audio-shaped, glides into open space
 - [x] **M2** Voice loop: `init`, wake word, Realtime session, barge-in, fallback
-- [ ] **M3** Display: cards, lists, tables, charts, voice navigation
+- [x] **M3** Display: cards, lists, tables, charts, voice navigation, live weather
 - [ ] **M4** Delegate: async Claude jobs with web search
 - [ ] **M5** Memory: remember, recall, forget
 - [ ] **M6** Polish and release

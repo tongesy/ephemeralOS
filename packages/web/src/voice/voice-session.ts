@@ -15,6 +15,8 @@ export interface VoiceSessionDeps {
   connect(handlers: RealtimeHandlers): Promise<RealtimeLink>;
   /** Run a gateway tool; resolves with its JSON output. */
   callTool(callId: string, name: string, args: string): Promise<string>;
+  /** Run a tool that lives in the page (display, screen); null if `name` isn't one. */
+  localTool?(name: string, args: string): string | null;
   transcript(role: 'user' | 'assistant', text: string): void;
   /** Speak locally (speechSynthesis) when the voice service is unavailable. */
   speakFallback(text: string): void;
@@ -203,6 +205,11 @@ export class VoiceSession {
     if (call.name === 'end_session') {
       this.reply(call.call_id, JSON.stringify({ ok: true }), false);
       this.windDown();
+      return;
+    }
+    const local = this.deps.localTool?.(call.name, call.arguments);
+    if (local != null) {
+      this.reply(call.call_id, local, true);
       return;
     }
     this.deps.setState('thinking');

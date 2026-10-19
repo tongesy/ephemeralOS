@@ -15,11 +15,12 @@ import { handleApi, serveModel } from './api.ts';
 import type { GatewayConfig } from './config.ts';
 import { allowedHosts, sendJson, tokensMatch } from './http.ts';
 import { serveStatic } from './static.ts';
-import { ToolRegistry } from './tools/registry.ts';
+import { defaultTools } from './tools/index.ts';
+import type { ToolRegistry } from './tools/registry.ts';
 import { appendTranscript } from './transcripts.ts';
 
 export interface GatewayOptions extends GatewayConfig {
-  /** Tools the voice session may call. Defaults to an empty registry. */
+  /** Tools the voice session may call through the gateway. Defaults to `defaultTools`. */
   tools?: ToolRegistry;
   /** Injected in tests; defaults to the global fetch. */
   fetch?: typeof fetch;
@@ -38,7 +39,7 @@ function send(ws: WebSocket, msg: ServerMessage): void {
 
 export async function startGateway(config: GatewayOptions): Promise<Gateway> {
   const webRoot = config.webRoot ? resolve(config.webRoot) : null;
-  const tools = config.tools ?? new ToolRegistry();
+  const tools = config.tools ?? defaultTools({ homeDir: config.homeDir, fetch: config.fetch });
   const api = { homeDir: config.homeDir, tools, fetch: config.fetch };
 
   const port = (): number => (server.address() as AddressInfo).port;
@@ -134,11 +135,17 @@ export async function startGateway(config: GatewayOptions): Promise<Gateway> {
           }).catch((error: unknown) => console.warn('[transcripts] could not write', error));
           return;
         case 'tool.call':
-          void tools.call(msg.name, msg.arguments).then((output) => {
-            if (ws.readyState === ws.OPEN) {
-              send(ws, { type: 'tool.result', callId: msg.callId, output });
-            }
-          });
+          void tools
+            .call(msg.name, msg.arguments, {
+              display: (args) => {
+                if (ws.readyState === ws.OPEN) send(ws, { type: 'display', args });
+              },
+            })
+            .then((output) => {
+              if (ws.readyState === ws.OPEN) {
+                send(ws, { type: 'tool.result', callId: msg.callId, output });
+              }
+            });
           return;
       }
     });

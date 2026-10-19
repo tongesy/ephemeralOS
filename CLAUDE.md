@@ -22,12 +22,16 @@ pnpm test         # vitest, all packages
   (`protocol.ts`) and the orb state list (`orb-state.ts`) live here. Bump
   `PROTOCOL_VERSION` on incompatible changes.
 - `packages/gateway`: `config.ts` (env → config), `server.ts` (HTTP + WS), `static.ts`
-  (serves the build and injects the token). Runs TypeScript directly via `tsx`; no build step.
+  (serves the build and injects the token), `realtime/` (session config, instructions),
+  `tools/` (gateway-side tools such as `weather`; a tool can push a display to the page).
+  Runs TypeScript directly via `tsx`; no build step.
 - `packages/web`: `main.ts` boots everything. `orb/` (shader, look table, state blend,
   placement in open space, springs),
   `audio/` (analysers, envelopes), `perf/` (frame meter, quality governor, readout),
   `theme/palette.ts` (the one palette), `styles/` (tokens, base CSS, fading surfaces),
-  `dev/` (dev-only shortcuts and a demo card).
+  `display/` (surfaces for the `display` and `screen` tools: stack, render, markdown subset,
+  SVG charts), `voice/` and `wake/` (Realtime and wake word), `dev/` (dev-only shortcuts and
+  demo displays).
 - Workspace packages export TypeScript source (`exports: ./src/index.ts`); Vite and tsx
   consume it directly.
 

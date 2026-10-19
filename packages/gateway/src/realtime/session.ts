@@ -1,5 +1,12 @@
 import { createHash } from 'node:crypto';
-import type { Config } from '@ephemeralos/shared';
+import {
+  DISPLAY_TOOL_DESCRIPTION,
+  DisplayArgs,
+  SCREEN_TOOL_DESCRIPTION,
+  ScreenArgs,
+  toolParameters,
+  type Config,
+} from '@ephemeralos/shared';
 
 const CLIENT_SECRETS_URL = 'https://api.openai.com/v1/realtime/client_secrets';
 
@@ -13,6 +20,18 @@ export interface RealtimeFunction {
 
 /** Tools the browser handles itself, without a round trip to the gateway. */
 export const CLIENT_TOOLS: RealtimeFunction[] = [
+  {
+    type: 'function',
+    name: 'display',
+    description: DISPLAY_TOOL_DESCRIPTION,
+    parameters: toolParameters(DisplayArgs),
+  },
+  {
+    type: 'function',
+    name: 'screen',
+    description: SCREEN_TOOL_DESCRIPTION,
+    parameters: toolParameters(ScreenArgs),
+  },
   {
     type: 'function',
     name: 'end_session',

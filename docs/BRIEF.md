@@ -12,6 +12,14 @@
 > - Layout: the orb is small and centred so the page feels clean and open. When content
 >   appears it fades in, and the orb glides into the most open space left on screen (rather
 >   than docking to a fixed corner), then back to the centre as the content fades out.
+> - Display (M3): tool arguments are flat (`body`, `items`, `columns`, `rows`, `chart` beside
+>   `component`) rather than nested under `props`, which the voice model fills more reliably.
+>   Charts use a small contract, `{ kind: "bar" | "line", labels, series, unit? }`, drawn as
+>   SVG, instead of Vega-Lite. One surface shows at a time; earlier ones stay in a short
+>   history that "back" and "next" walk through.
+> - Live data starts with weather (M3): a gateway `weather` tool calls Open-Meteo (no key),
+>   speaks a summary and pushes the forecast table to the page. Other live data arrives with
+>   web search in M4.
 > - The orb's edge and inner glow follow the live audio spectrum, in (microphone) and out
 >   (voice), not a generic ripple.
 > - API details marked [verify] were checked on 2026-10-19; see

@@ -98,8 +98,13 @@ export async function init(options: { homeDir: string; models: boolean }): Promi
   const voice =
     (await ask(`  Voice (${VOICES.join(', ')}) [${current.voice}] `)).toLowerCase() ||
     current.voice;
-  const config = Config.parse({ ...stored, name, voice });
-  await writeFile(configPath, `${JSON.stringify({ ...stored, name, voice }, null, 2)}\n`);
+  const location =
+    (await ask(
+      `  Where are you, for the weather? ${current.location ? `[${current.location}] ` : '(Enter to skip) '}`,
+    )) || current.location;
+  const updated = { ...stored, name, voice, ...(location ? { location } : {}) };
+  const config = Config.parse(updated);
+  await writeFile(configPath, `${JSON.stringify(updated, null, 2)}\n`);
   console.log('');
   if (options.models) {
     console.log(`${bold('Wake word')}: "${config.wakeWord.phrase}"\n${dim(MODELS_LICENCE)}`);

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /** Bumped whenever the browser ⇄ gateway wire format changes incompatibly. */
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 /** Path the gateway serves its WebSocket on. */
 export const WS_PATH = '/ws';
@@ -72,11 +72,21 @@ export const ServerToolResult = z.object({
   output: z.string(),
 });
 
+/**
+ * Put something on screen from the gateway side. `args` are `display` tool arguments;
+ * the page validates them with `parseDisplay` like any other display call.
+ */
+export const ServerDisplay = z.object({
+  type: z.literal('display'),
+  args: z.unknown(),
+});
+
 export const ServerMessage = z.discriminatedUnion('type', [
   ServerWelcome,
   ServerPong,
   ServerError,
   ServerToolResult,
+  ServerDisplay,
 ]);
 export type ServerMessage = z.infer<typeof ServerMessage>;
 

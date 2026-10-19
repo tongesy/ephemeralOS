@@ -28,6 +28,12 @@
   line-height: 1.1;
 }
 
+.surface__source {
+  margin: var(--size-4) 0 0;
+  font-size: 0.75rem;
+  color: var(--eos-stone);
+}
+
 .surface__list {
   margin: 0;
   padding: 0;
@@ -61,4 +67,173 @@
 .surface__detail {
   font-size: 0.875rem;
   color: var(--eos-stone);
+}
+
+/* Placement: content sits left of centre and the orb finds the open space beside it. */
+.surface {
+  left: 8vw;
+  top: 50%;
+  translate: 0 -50%;
+  width: min(460px, 84vw);
+  max-height: 80vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.surface::-webkit-scrollbar {
+  display: none;
+}
+
+.surface--table {
+  width: min(720px, 84vw);
+}
+
+.surface--chart {
+  width: min(620px, 84vw);
+}
+
+.surface[data-large] {
+  width: min(1040px, 84vw);
+  max-height: 86vh;
+}
+
+.surface--card.surface[data-large] .surface__body,
+.surface[data-large] .surface__label {
+  font-size: 1.25rem;
+}
+
+/* A numbered item the user asked to open. */
+.surface__list li,
+.surface__table tbody tr {
+  transition: background var(--eos-duration) var(--eos-ease);
+}
+
+.surface__list li[data-open],
+.surface__table tbody tr[data-open] {
+  background: color-mix(in oklab, var(--eos-glacier) 22%, transparent);
+}
+
+.surface__list li[data-open]::before {
+  color: var(--eos-ink);
+}
+
+/* Card */
+.surface__image {
+  display: block;
+  width: 100%;
+  margin: 0 0 var(--size-4);
+  border-radius: var(--size-2);
+  object-fit: cover;
+  max-height: 40vh;
+}
+
+.surface__body {
+  font-size: 1.0625rem;
+  line-height: 1.55;
+}
+
+.surface__body > :first-child {
+  margin-top: 0;
+}
+
+.surface__body > :last-child {
+  margin-bottom: 0;
+}
+
+.surface__body p,
+.surface__body ul {
+  margin: 0 0 var(--size-3);
+}
+
+.surface__body ul {
+  padding-left: 1.1em;
+}
+
+.surface__body strong {
+  font-weight: var(--eos-weight-medium);
+}
+
+.surface__body code {
+  font-family: var(--eos-font-mono);
+  font-size: 0.9em;
+}
+
+/* Table */
+.surface__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.surface__table th {
+  padding: 0 var(--size-3) var(--size-2) 0;
+  text-align: left;
+  font-weight: var(--eos-weight-regular);
+  font-size: 0.8125rem;
+  color: var(--eos-stone);
+}
+
+.surface__table td {
+  padding: var(--size-3) var(--size-3) var(--size-3) 0;
+  border-top: 1px solid var(--eos-glass-hairline);
+}
+
+.surface__table .is-number {
+  text-align: right;
+}
+
+.surface__table .surface__index {
+  width: 2rem;
+  font-family: var(--eos-font-mono);
+  font-size: 0.875rem;
+  color: var(--eos-stone);
+}
+
+/* Chart */
+.surface__chart {
+  margin: 0;
+}
+
+.surface__chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.chart__grid {
+  stroke: var(--eos-glass-hairline);
+}
+
+.chart__tick {
+  font-family: var(--eos-font-mono);
+  font-size: 11px;
+  fill: var(--eos-stone);
+}
+
+.chart__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-2) var(--size-4);
+  margin-top: var(--size-3);
+  font-size: 0.8125rem;
+  color: var(--eos-stone);
+}
+
+.chart__legend span:not(.chart__unit)::before {
+  content: '';
+  display: inline-block;
+  width: 0.625rem;
+  height: 0.625rem;
+  margin-right: 0.4em;
+  border-radius: 2px;
+  background: var(--swatch);
+  vertical-align: -0.05em;
+}
+
+.chart__unit {
+  margin-left: auto;
+  font-family: var(--eos-font-mono);
 }
