@@ -95,6 +95,8 @@ Logos are looked up by website through the gateway and cached in `~/.ephemeralos
 the page only ever loads them from your own machine. Without a key they are the sites' own
 icons; give `init` an optional [logo.dev](https://www.logo.dev) key for sharper logos.
 Everything else uses a bundled set of [Phosphor](https://phosphoricons.com) icons (MIT).
+A card about a person, place or thing shows the lead photo from its Wikipedia article,
+fetched and cached the same way.
 
 `init` is the only setup step, and it happens in the terminal: keys are typed there, hidden,
 and saved to `~/.ephemeralos/.env` (mode `600`). They are never typed into, sent to, or spoken

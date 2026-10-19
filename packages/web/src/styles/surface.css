@@ -129,6 +129,66 @@
   max-height: 40vh;
 }
 
+/* A card about someone or something: their photo beside the text. */
+.surface--card:has(.surface__portrait) {
+  width: min(640px, 84vw);
+}
+
+.surface__feature {
+  display: flex;
+  gap: var(--size-5);
+  align-items: flex-start;
+}
+
+.surface__portrait {
+  flex: 0 0 auto;
+  width: clamp(7rem, 28%, 11rem);
+  margin: 0;
+}
+
+.surface__portrait img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  object-position: 50% 20%;
+  border-radius: var(--size-2);
+  background: var(--eos-glass-hairline);
+  opacity: 0;
+  filter: blur(8px) saturate(0.6);
+  transform: scale(1.04);
+  transition:
+    opacity 700ms var(--eos-ease-out),
+    filter 900ms var(--eos-ease-out),
+    transform 1200ms var(--eos-ease-out);
+}
+
+.surface__portrait[data-loaded] img {
+  opacity: 1;
+  filter: none;
+  transform: none;
+}
+
+.surface__credit {
+  margin-top: var(--size-2);
+  font-size: 0.6875rem;
+  color: var(--eos-stone);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .surface__portrait img {
+    transition: opacity 300ms linear;
+    filter: none;
+    transform: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .surface__feature {
+    flex-direction: column;
+  }
+}
+
 .surface__body {
   font-size: 1.0625rem;
   line-height: 1.55;
@@ -182,11 +242,14 @@
 }
 
 .surface__table .is-number {
+  width: 1%;
+  white-space: nowrap;
   text-align: right;
 }
 
 .surface__table .surface__index {
   width: 2rem;
+  text-align: left;
   font-family: var(--eos-font-mono);
   font-size: 0.875rem;
   color: var(--eos-stone);

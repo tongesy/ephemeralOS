@@ -1,5 +1,11 @@
 import { defineConfig, type Plugin } from 'vite';
-import { LOGOS_PATH, MODELS_PATH, TOKEN_META_NAME, WS_PATH } from '@ephemeralos/shared';
+import {
+  LOGOS_PATH,
+  MODELS_PATH,
+  PHOTOS_PATH,
+  TOKEN_META_NAME,
+  WS_PATH,
+} from '@ephemeralos/shared';
 
 const GATEWAY = `http://127.0.0.1:${process.env.EOS_PORT ?? 4317}`;
 
@@ -33,6 +39,7 @@ export default defineConfig({
       '/api/': GATEWAY,
       [MODELS_PATH]: GATEWAY,
       [LOGOS_PATH]: GATEWAY,
+      [PHOTOS_PATH]: GATEWAY,
     },
   },
   worker: { format: 'es' },

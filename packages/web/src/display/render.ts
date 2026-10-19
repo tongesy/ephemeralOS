@@ -1,7 +1,8 @@
-import { LOGOS_PATH, type DisplayRequest, type IconName } from '@ephemeralos/shared';
+import { LOGOS_PATH, PHOTOS_PATH, type DisplayRequest, type IconName } from '@ephemeralos/shared';
 import { renderChart } from './chart.ts';
 import { ICON_PATHS } from './icon-paths.ts';
 import { renderMarkdown } from './markdown.ts';
+import { isNumericColumn, ranksItself } from './table-layout.ts';
 
 function text<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -29,6 +30,23 @@ function picture(url: string, fallback: SVGSVGElement | null): HTMLImageElement 
     once: true,
   });
   return img;
+}
+
+/**
+ * A photo of who or what a card is about, from the gateway's Wikipedia lookup. It develops
+ * in once loaded; if there is none, the text simply takes the whole card.
+ */
+function portrait(title: string): HTMLElement {
+  const figure = document.createElement('figure');
+  figure.className = 'surface__portrait';
+  const img = document.createElement('img');
+  img.alt = title;
+  img.decoding = 'async';
+  img.src = `${PHOTOS_PATH}${encodeURIComponent(title)}`;
+  img.addEventListener('load', () => figure.setAttribute('data-loaded', ''), { once: true });
+  img.addEventListener('error', () => figure.remove(), { once: true });
+  figure.append(img, text('figcaption', 'surface__credit', 'Wikipedia'));
+  return figure;
 }
 
 /** The mark beside a row or item: its image, else its site's logo, else a bundled icon. */
@@ -80,7 +98,14 @@ export function renderSurface(request: DisplayRequest): HTMLElement {
       const body = document.createElement('div');
       body.className = 'surface__body';
       body.append(renderMarkdown(content.body));
-      section.append(body);
+      if (content.photo) {
+        const feature = document.createElement('div');
+        feature.className = 'surface__feature';
+        feature.append(portrait(content.photo), body);
+        section.append(feature);
+      } else {
+        section.append(body);
+      }
       break;
     }
     case 'list': {
@@ -101,15 +126,22 @@ export function renderSurface(request: DisplayRequest): HTMLElement {
     case 'table': {
       const table = document.createElement('table');
       table.className = 'surface__table';
+      const numeric = content.columns.map((_, c) => isNumericColumn(content.rows, c));
+      // A table that already ranks its rows ("Pos", "#") isn't numbered twice.
+      const ranked = ranksItself(content.columns[0] ?? '', content.rows);
       const head = table.createTHead().insertRow();
-      head.append(text('th', 'surface__index', ''));
-      for (const column of content.columns) head.append(text('th', '', column));
+      if (!ranked) head.append(text('th', 'surface__index', ''));
+      content.columns.forEach((column, c) => {
+        const kind = ranked && c === 0 ? 'surface__index' : numeric[c] ? 'is-number' : '';
+        head.append(text('th', kind, column));
+      });
       const body = table.createTBody();
       content.rows.forEach((row, i) => {
         const tr = body.insertRow();
-        tr.append(text('td', 'surface__index', String(i + 1)));
+        if (!ranked) tr.append(text('td', 'surface__index', String(i + 1)));
         row.forEach((cell, c) => {
-          const td = text('td', typeof cell === 'number' ? 'is-number' : '', String(cell));
+          const kind = ranked && c === 0 ? 'surface__index' : numeric[c] ? 'is-number' : '';
+          const td = text('td', kind, String(cell));
           if (c === (content.iconColumn ?? 0)) {
             const beside = mark(
               content.rowImages?.[i],
@@ -142,12 +174,13 @@ export function numberedItems(surface: HTMLElement): HTMLElement[] {
 /** What an item says, for the model to talk about after "open number N". */
 export function describeItem(item: HTMLElement): string {
   if (item instanceof HTMLTableRowElement) {
-    const headers = [...(item.closest('table')?.querySelectorAll('thead th') ?? [])]
-      .slice(1)
-      .map((th) => th.textContent ?? '');
+    const headers = [...(item.closest('table')?.querySelectorAll('thead th') ?? [])].map(
+      (th) => th.textContent ?? '',
+    );
     return [...item.cells]
-      .slice(1)
-      .map((cell, i) => `${headers[i] ?? ''}: ${cell.textContent ?? ''}`)
+      .map((cell, i) => ({ cell, header: headers[i] ?? '' }))
+      .filter(({ cell }) => !cell.classList.contains('surface__index'))
+      .map(({ cell, header }) => `${header}: ${cell.textContent ?? ''}`)
       .join(', ');
   }
   return [...item.children].map((c) => c.textContent ?? '').join(' — ');

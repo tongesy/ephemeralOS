@@ -3,6 +3,7 @@ import {
   ICON_NAMES,
   logoDomain,
   parseDisplay,
+  photoTitle,
   toolParameters,
   type DisplayArgs,
 } from '@ephemeralos/shared';
@@ -42,12 +43,16 @@ Layouts:
   {"component": "chart", "chart": {"kind": "line" or "bar", "labels": ["Mon", "Tue"],
    "series": [{"name": "Price", "values": [1.2, 1.3]}], "unit": "$"}}
 - Card, for one thing explained briefly:
-  {"component": "card", "body": "Markdown: up to six short - bullets, **bold** sparingly"}
+  {"component": "card", "body": "Markdown: up to six short - bullets, **bold** sparingly",
+   "photo": "Erling Haaland"}
+  For a card about a person, place, team, building or thing, set "photo" to the exact title
+  of its English Wikipedia article; its photo is shown beside the text.
 
 Keep it short: at most 12 rows, 6 columns or 8 items. Use numbers (not strings) for numeric cells.
-Marks beside rows and items are optional; give each row or item at most one, or "" for none:
-- domain / row_domains: the official website of the team, company, publisher or place
-  ("arsenal.com"), for its logo. Only when you are sure of it.
+Give rows and items a mark whenever one fits (at most one each, "" for none):
+- domain / row_domains: for teams, clubs, companies, brands, publishers and the like, the
+  official website ("arsenal.com", "mancity.com"), which shows its logo. You know most of
+  these without searching; always include them for a table of teams or companies.
 - icon / row_icons: one of these bundled icons, when a symbol fits better than a logo:
   ${ICON_NAMES.join(', ')}.
 - image_url / row_images: a direct https URL to a small image you actually read; never invent one.
@@ -123,6 +128,7 @@ function tidyLayout(show: Record<string, unknown>): Record<string, unknown> {
     if (typeof value === 'string' && key?.includes('domain')) {
       return logoDomain(value) ?? (key === 'row_domains' ? '' : undefined);
     }
+    if (typeof value === 'string' && key === 'photo') return photoTitle(value) ?? undefined;
     if (typeof value === 'string' && key?.includes('icon') && key !== 'icon_column') {
       return ICONS.has(value) ? value : key === 'row_icons' ? '' : undefined;
     }
@@ -205,6 +211,9 @@ export function createSearchTool(options: { homeDir: string; fetch?: typeof fetc
         } as DisplayArgs;
         const checked = parseDisplay(surface);
         if (checked.ok) {
+          const c = checked.value.content;
+          const marks = c.component === 'table' ? [c.rowDomains, c.rowIcons, c.rowImages] : [];
+          console.info(`[tools] search: ${c.component}${marks.some(Boolean) ? ' with marks' : ''}`);
           context.display(surface);
           shownOnScreen = true;
         } else {

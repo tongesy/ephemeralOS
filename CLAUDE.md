@@ -26,7 +26,8 @@ pnpm test         # vitest, all packages
   (serves the build and injects the token), `realtime/` (session config, instructions),
   `tools/` (gateway-side tools such as `weather` and `search`; a tool can push a display to the
   page), `brain/` (web-search answers from Claude or OpenAI, chosen by which key is set),
-  `logos.ts` (`/logos/<domain>`: fetched, byte-checked and cached logos).
+  `images/` (`/logos/<domain>` and `/photos/<Wikipedia title>`: fetched, byte-checked and
+  cached pictures, so the page never loads from third parties).
   Runs TypeScript directly via `tsx`; no build step.
 - `packages/web`: `main.ts` boots everything. `orb/` (shader, look table, state blend,
   placement in open space, springs),
