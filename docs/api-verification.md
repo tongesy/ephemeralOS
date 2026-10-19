@@ -1,0 +1,48 @@
+# API verification
+
+The brief marks several provider details [verify]. These were checked against official
+documentation on **2026-10-19**. Re-check before each milestone that depends on them.
+
+## OpenAI Realtime (voice, M2)
+
+| Topic                | Finding                                                                                                                                                                                                                                                 |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Models               | `gpt-realtime-2.1` and `gpt-realtime-2.1-mini`. Both support function calling and configurable reasoning effort (default `low`). **Default for ephemeralOS: `gpt-realtime-2.1-mini`** (≈⅓ the audio cost).                                              |
+| Ephemeral credential | Gateway calls `POST /v1/realtime/client_secrets` with the real key and `{ session: { type: "realtime", model, audio: { output: { voice } } } }`. The response's `value` is the browser's short-lived key. Expiry is not documented on the WebRTC guide. |
+| WebRTC               | Browser POSTs its SDP offer to `/v1/realtime/calls` (`Content-Type: application/sdp`, `Authorization: Bearer <ephemeral key>`); the response body is the SDP answer. Events flow over the `oai-events` data channel.                                    |
+| Alternative          | "Unified interface": the gateway forwards the SDP to `/v1/realtime/calls` itself. Not used; the ephemeral-key flow keeps the gateway out of the media path.                                                                                             |
+| Inject + respond     | `conversation.item.create` (a `message` with `input_text`), then `response.create`. Out-of-band responses: `response.create` with `response.conversation: "none"` and `metadata`.                                                                       |
+| Tool calls           | `response.done` carries `function_call` items (`name`, `arguments`, `call_id`). Reply with `conversation.item.create` of type `function_call_output` and the same `call_id`, then `response.create`.                                                    |
+| Barge-in             | Over WebRTC the server truncates unplayed audio itself when the user interrupts. Turn detection: `semantic_vad` or `server_vad`.                                                                                                                        |
+| Session limit        | 60 minutes. Long sessions resend context, so cost grows with length.                                                                                                                                                                                    |
+| Safety identifier    | Server-side requests should send `OpenAI-Safety-Identifier`.                                                                                                                                                                                            |
+
+Sources: [Realtime WebRTC guide](https://developers.openai.com/api/docs/guides/realtime-webrtc),
+[Realtime conversations guide](https://developers.openai.com/api/docs/guides/realtime-conversations),
+[gpt-realtime-2.1 launch coverage](https://www.marktechpost.com/2026/07/06/openai-gpt-realtime-2-1-mini-reasoning-realtime-api/).
+
+## Anthropic (brain, M4)
+
+| Topic      | Finding                                                                                                                                                                                                                                                |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Models     | `claude-opus-5-5`, `claude-sonnet-5-5`, `claude-haiku-5-5`.                                                                                                                                                                                            |
+| Web search | `{ type: "web_search_20260318", name: "web_search" }` with `max_uses`, `allowed_domains` or `blocked_domains`, and `user_location`. Uses dynamic filtering by default; `allowed_callers: ["direct"]` turns it off. $10 per 1,000 searches plus tokens. |
+| Tool use   | Messages API `tools` with a JSON Schema `input_schema`, which we generate from the shared zod schemas.                                                                                                                                                 |
+
+Source: [Web search tool](https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool).
+
+## Wake word (local, M2)
+
+| Topic          | Finding                                                                                                                                                                       |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Engine         | openWakeWord runs in Chrome on `onnxruntime-web` (WASM; the WebGL backend lacks the melspectrogram ops).                                                                      |
+| Pipeline       | 16 kHz mono in 80 ms chunks → `melspectrogram.onnx` → `embedding_model.onnx` (96-d) → wake-word model, confirmed by a VAD. About 1.3 s of warm-up before the first detection. |
+| Custom phrases | Pre-trained models include "hey jarvis", "alexa" and "hey mycroft". "Hey Orb" needs a custom model from the openWakeWord training notebook (~45 min).                         |
+| Plan           | Ship on "hey jarvis" in M2 and train "Hey Orb" alongside it. Measure CPU on real hardware then.                                                                               |
+
+Sources: [openWakeWord](https://github.com/dscripka/openWakeWord),
+[Open Wake Word on the Web](https://deepcorelabs.com/open-wake-word-on-the-web/).
+
+## Meta Model API (v0.2)
+
+Not verified yet; deferred to the v0.2 adapter.
