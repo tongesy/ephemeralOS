@@ -23,6 +23,7 @@ function harness(options: { connectFails?: boolean } = {}) {
     speakFallback: vi.fn(),
     audio: vi.fn(),
     ready: vi.fn(),
+    heard: vi.fn(),
     ended: vi.fn(),
   };
   const session = new VoiceSession(deps);
@@ -38,6 +39,7 @@ describe('VoiceSession', () => {
     expect(h.states).toEqual(['thinking', 'listening']);
     expect(h.deps.ready).toHaveBeenCalledTimes(1);
     h.emit('input_audio_buffer.speech_started');
+    expect(h.deps.heard).toHaveBeenCalledTimes(1);
     h.emit('input_audio_buffer.speech_stopped');
     expect(h.last()).toBe('thinking');
     h.emit('output_audio_buffer.started');

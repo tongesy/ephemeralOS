@@ -3,6 +3,7 @@ import type { Rect } from '../orb/placement.ts';
 import { DisplayStack, type DisplayEntry } from './display-stack.ts';
 import { stepSlides } from './editorial.ts';
 import { conceal, resize, reveal } from './motion.ts';
+import { wouldReplaceToolResult } from './tool-result.ts';
 import { describeItem, numberedItems, renderSurface } from './render.ts';
 
 /** What the model is told about the screen after each call. */
@@ -35,6 +36,12 @@ export class DisplayManager {
   /** Bumped by every render, so a morph that is overtaken stops where it is. */
   private generation = 0;
   private sessionEnd: ReturnType<typeof setTimeout> | undefined;
+  /**
+   * A tool's result is on screen (a search table, a forecast) and the user hasn't spoken
+   * since. The voice model sometimes follows a result with its own summary card, which
+   * would replace the real thing; until the user's next turn, that is refused.
+   */
+  private toolResult: string | null = null;
 
   constructor(
     private readonly onLayout: (occupied: Rect[]) => void,
@@ -44,11 +51,29 @@ export class DisplayManager {
     window.addEventListener('resize', () => this.reportLayout());
   }
 
-  /** Handle a `display` call (JSON arguments). Returns the JSON result for the model. */
-  display(rawArgs: unknown): string {
+  /**
+   * Handle a `display` call (JSON arguments). Returns the JSON result for the model.
+   * `fromTool` marks results a gateway tool put up itself.
+   */
+  display(rawArgs: unknown, fromTool = false): string {
     const parsed = parseDisplay(rawArgs);
     if (!parsed.ok) return JSON.stringify({ error: parsed.error });
+    const shown = this.stack.shown;
+    const replaces = wouldReplaceToolResult({
+      toolResult: this.el ? this.toolResult : null,
+      shown: shown && { key: shown.key, id: shown.request.id },
+      incomingId: parsed.value.id,
+      fromTool,
+    });
+    if (replaces) {
+      return JSON.stringify({
+        ok: false,
+        note: 'The result is already on screen. Do not replace it; just say the gist.',
+        ...this.summary(),
+      });
+    }
     const { entry, updated } = this.stack.show(parsed.value);
+    this.toolResult = fromTool ? entry.key : null;
     this.render(entry, updated);
     return JSON.stringify({ ok: true, ...this.summary() });
   }
@@ -70,6 +95,11 @@ export class DisplayManager {
       this.stack.clear();
       this.clearSurface();
     }, AFTER_SESSION_MS);
+  }
+
+  /** The user started speaking: a new turn may change what's shown. */
+  userSpoke(): void {
+    this.toolResult = null;
   }
 
   /** A conversation started again: keep what's shown. */
