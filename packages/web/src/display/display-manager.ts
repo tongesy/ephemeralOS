@@ -1,6 +1,7 @@
 import { ScreenArgs, parseDisplay, type Scene, type ScreenAction } from '@ephemeralos/shared';
 import type { Rect } from '../orb/placement.ts';
 import { DisplayStack, type DisplayEntry } from './display-stack.ts';
+import { stepSlides } from './editorial.ts';
 import { conceal, resize, reveal } from './motion.ts';
 import { describeItem, numberedItems, renderSurface } from './render.ts';
 
@@ -101,6 +102,10 @@ export class DisplayManager {
     switch (action) {
       case 'next':
       case 'back': {
+        if (this.el && stepSlides(this.el, action === 'next' ? 1 : -1)) {
+          this.restartTimer();
+          return { ok: true, note: 'Moved within the slideshow.' };
+        }
         const moved = this.stack.step(action === 'next' ? 1 : -1);
         if (!moved)
           return { note: action === 'next' ? 'Nothing after this.' : 'Nothing before this.' };
@@ -222,8 +227,16 @@ export class DisplayManager {
       this.onLayout([]);
       return;
     }
-    // Mid-fade the surface sits a few pixels low; close enough for the orb to plan around.
-    const { x, y, width, height } = this.el.getBoundingClientRect();
-    this.onLayout([{ x, y, width, height }]);
+    // Full-bleed layouts mark the part the orb must keep clear (their text); the rest of
+    // the screen is a picture it may sit on. Mid-fade the surface sits a few pixels low;
+    // close enough for the orb to plan around.
+    const marked = [...this.el.querySelectorAll<HTMLElement>('[data-occupies]')];
+    const parts = this.el.matches('.editorial') && marked.length ? marked : [this.el];
+    this.onLayout(
+      parts.map((part) => {
+        const { x, y, width, height } = part.getBoundingClientRect();
+        return { x, y, width, height };
+      }),
+    );
   }
 }

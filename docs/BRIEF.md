@@ -47,6 +47,11 @@
 > - Weather is a scene, not just a table: while a weather surface is shown, the page becomes
 >   the weather right now (sky by day or night, clouds, haze, rain, snow, lightning, and
 >   raindrops on the glass), then fades back to paper. A surface carries it as `scene`.
+>   The orb floats above everything on its own transparent canvas.
+> - Two editorial components join card, list, table and chart: `hero` (one photo full bleed,
+>   with `kicker`, title and dek over it) and `gallery` (`images`, up to eight, each a
+>   Wikipedia `photo` or an https `image_url` with a caption, as a mosaic or, with
+>   `slideshow`, one at a time full screen; "next" and "back" step through the slides).
 > - A gateway tool that is still running keeps the session open and the orb thinking, so
 >   a slow answer is always spoken before the screen fades.
 >

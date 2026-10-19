@@ -14,11 +14,15 @@ or under 16.7 ms.
   fields, one for the edge ripple). Nothing loops on screen size.
 - **Full-density rendering.** The orb renders at the display's pixel ratio (up to 3×) so it
   stays crisp; it is small, and pixels away from it only compute the aura.
+- **Two canvases.** The weather has its own canvas beneath the page's content
+  ([`scene/backdrop.ts`](../packages/web/src/scene/backdrop.ts)); the orb has a transparent
+  one above it, so it stays visible over full-bleed photos. Both write premultiplied alpha
+  and composite in the browser, which costs nothing extra on the GPU.
 - **Weather at half resolution.** A weather scene renders at half the CSS resolution into
-  a half-float texture (value noise, fixed layers, no loops over screen size), and the orb
-  pass reads it as its page with one texture sample. Raindrops on the glass are computed at
-  full resolution from two grids of cells, a handful of operations per pixel. With no
-  weather shown, the scene pass is skipped entirely.
+  a half-float texture (value noise, fixed layers, no loops over screen size), then one pass
+  draws it to the backdrop canvas at up to 2× density with the raindrops on the glass,
+  computed from two grids of cells, a handful of operations per pixel. With no weather
+  shown, the backdrop is cleared once and then not drawn at all.
 - **Adaptive resolution.** [`QualityGovernor`](../packages/web/src/perf/frame-meter.ts) drops
   the render scale in 0.25 steps after 1.5 s of slow frames and climbs back after 5 s of
   headroom, but never below 1× (one buffer pixel per CSS pixel), so it never looks blurry.

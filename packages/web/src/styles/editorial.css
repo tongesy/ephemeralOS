@@ -1,0 +1,275 @@
+/*
+ * Editorial layouts (hero, gallery, slideshow): full-bleed photography with type set over
+ * it, like a magazine spread. Photos develop in once loaded and drift slowly while shown.
+ */
+
+.editorial {
+  inset: 0;
+  left: 0;
+  top: 0;
+  translate: none;
+  width: 100vw;
+  height: 100vh;
+  max-height: none;
+  padding: 0;
+  overflow: hidden;
+  color: var(--eos-paper);
+}
+
+.editorial__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  filter: blur(12px) saturate(0.7);
+  transition:
+    opacity 900ms var(--eos-ease-out),
+    filter 1400ms var(--eos-ease-out);
+}
+
+.editorial__img[data-loaded] {
+  opacity: 1;
+  filter: none;
+}
+
+/* Hero: one photo across the whole screen, the headline low on the left. */
+.surface--hero > .editorial__img {
+  position: absolute;
+  inset: 0;
+  animation: eos-drift 24s var(--eos-ease) both;
+}
+
+.surface--hero::after,
+.editorial__slides::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--eos-ink) 72%, transparent) 0%,
+    color-mix(in srgb, var(--eos-ink) 28%, transparent) 38%,
+    transparent 62%
+  );
+}
+
+.editorial__text {
+  position: absolute;
+  z-index: 1;
+  left: 8vw;
+  bottom: 10vh;
+  max-width: min(46rem, 84vw);
+}
+
+.editorial__kicker {
+  margin: 0 0 var(--size-3);
+  font-family: var(--eos-font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.editorial__title {
+  margin: 0;
+  font-size: clamp(2.5rem, 6vw, 5.5rem);
+  font-weight: var(--eos-weight-light);
+  letter-spacing: var(--eos-tracking-tight);
+  line-height: 1;
+  text-wrap: balance;
+}
+
+.editorial__dek {
+  margin-top: var(--size-4);
+  max-width: 36rem;
+  font-size: clamp(1.0625rem, 1.5vw, 1.3125rem);
+  line-height: 1.5;
+  opacity: 0.92;
+}
+
+.editorial__dek p,
+.editorial__dek ul {
+  margin: 0 0 var(--size-2);
+}
+
+.editorial .surface__source {
+  position: absolute;
+  z-index: 1;
+  right: 4vw;
+  bottom: 4vh;
+  margin: 0;
+  color: inherit;
+  opacity: 0.7;
+}
+
+/* A hero whose photo couldn't load is simply a card. */
+.surface--hero.is-imageless {
+  inset: auto;
+  left: 8vw;
+  top: 50%;
+  translate: 0 -50%;
+  width: min(560px, 84vw);
+  height: auto;
+  padding: var(--size-6) var(--size-7);
+  color: var(--eos-ink);
+}
+
+.surface--hero.is-imageless::after {
+  display: none;
+}
+
+.surface--hero.is-imageless .editorial__text {
+  position: static;
+}
+
+.surface--hero.is-imageless .editorial__title {
+  font-size: clamp(1.75rem, 3vw, 2.75rem);
+}
+
+/* Gallery: a mosaic on the page, the first picture largest. */
+.surface--gallery:has(.editorial__mosaic) {
+  padding: 8vh 6vw;
+  color: var(--eos-ink);
+}
+
+.surface--gallery:has(.editorial__mosaic) .editorial__title {
+  margin-bottom: var(--size-5);
+  font-size: clamp(1.75rem, 3.2vw, 3rem);
+}
+
+.editorial__mosaic {
+  display: grid;
+  gap: var(--size-3);
+  height: calc(100% - 6rem);
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 1fr;
+}
+
+.editorial__mosaic[data-count='1'] {
+  grid-template-columns: 1fr;
+}
+
+.editorial__mosaic[data-count='2'] {
+  grid-template-columns: 1fr 1fr;
+}
+
+.editorial__mosaic[data-count='3'],
+.editorial__mosaic[data-count='4'] {
+  grid-template-columns: 2fr 1fr 1fr;
+}
+
+.editorial__mosaic[data-count='3'] .editorial__frame:first-child,
+.editorial__mosaic[data-count='4'] .editorial__frame:first-child {
+  grid-row: span 2;
+}
+
+.editorial__mosaic[data-count='3'] .editorial__frame:nth-child(2) {
+  grid-column: span 2;
+}
+
+.editorial__mosaic[data-count='4'] .editorial__frame:nth-child(4) {
+  grid-column: span 2;
+}
+
+.editorial__mosaic:not([data-count='1'], [data-count='2'], [data-count='3'], [data-count='4'])
+  .editorial__frame:first-child {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+.editorial__frame {
+  position: relative;
+  margin: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--size-2);
+  background: var(--eos-glass-hairline);
+}
+
+.editorial__caption {
+  position: absolute;
+  left: var(--size-3);
+  right: var(--size-3);
+  bottom: var(--size-3);
+  font-size: 0.8125rem;
+  color: var(--eos-paper);
+  text-shadow: 0 1px 8px color-mix(in srgb, var(--eos-ink) 60%, transparent);
+}
+
+/* Slideshow: one picture at a time across the whole screen, cross-fading. */
+.editorial__slides {
+  position: absolute;
+  inset: 0;
+}
+
+.editorial__slides .editorial__frame {
+  position: absolute;
+  inset: 0;
+  border-radius: 0;
+  opacity: 0;
+  transition: opacity 1600ms var(--eos-ease);
+}
+
+.editorial__slides .editorial__frame[data-current] {
+  opacity: 1;
+}
+
+.editorial__slides .editorial__frame[data-current] .editorial__img {
+  animation: eos-drift 14s linear both;
+}
+
+.editorial__slides .editorial__frame:nth-child(even)[data-current] .editorial__img {
+  animation-name: eos-drift-back;
+}
+
+.editorial__slides .editorial__caption {
+  z-index: 1;
+  left: auto;
+  right: 4vw;
+  bottom: 8vh;
+  max-width: 28rem;
+  text-align: right;
+  font-size: 0.9375rem;
+  /* The old caption leaves before the new one arrives, so the two never overlap. */
+  opacity: 0;
+  transition: opacity 400ms var(--eos-ease);
+}
+
+.editorial__slides .editorial__frame[data-current] .editorial__caption {
+  opacity: 1;
+  transition: opacity 700ms var(--eos-ease) 900ms;
+}
+
+.surface--gallery:has(.editorial__slides) > .editorial__title {
+  position: absolute;
+  z-index: 1;
+  left: 8vw;
+  bottom: 10vh;
+  max-width: min(40rem, 60vw);
+}
+
+@keyframes eos-drift {
+  from {
+    transform: scale(1.12) translate(-1.5%, 1%);
+  }
+  to {
+    transform: scale(1.02) translate(0, 0);
+  }
+}
+
+@keyframes eos-drift-back {
+  from {
+    transform: scale(1.02) translate(1%, 0);
+  }
+  to {
+    transform: scale(1.12) translate(-1%, -1.5%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .editorial__img,
+  .editorial__slides .editorial__frame[data-current] .editorial__img {
+    animation: none;
+  }
+}
