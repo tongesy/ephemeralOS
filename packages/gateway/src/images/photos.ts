@@ -57,6 +57,34 @@ export function photoSources(summary: unknown): string[] {
   return [...new Set(urls)];
 }
 
+/*
+ * When Wikipedia has no photo (or it won't load), Openverse: the open-licensed image search
+ * run by WordPress (Flickr, Wikimedia Commons, museums), searchable without a key. Its
+ * pictures come through its own thumbnail service, so only one more host is ever asked.
+ */
+const OPENVERSE = 'https://api.openverse.org/v1/images/';
+
+const OpenverseImage = z.looseObject({
+  id: z.string().regex(/^[0-9a-f-]{36}$/),
+  width: z.number().nullish(),
+  height: z.number().nullish(),
+});
+const OpenverseResults = z.looseObject({ results: z.array(z.unknown()) });
+
+/** Openverse's pictures for a search, best first: wide photos, at full size then as a thumbnail. */
+export function openverseSources(found: unknown): string[] {
+  const parsed = OpenverseResults.safeParse(found);
+  if (!parsed.success) return [];
+  return parsed.data.results
+    .flatMap((r) => {
+      const image = OpenverseImage.safeParse(r);
+      return image.success ? [image.data] : [];
+    })
+    .filter((r) => (r.width ?? 0) >= 800 && (r.width ?? 0) >= (r.height ?? 0) * 0.6)
+    .slice(0, 3)
+    .flatMap((r) => [`${OPENVERSE}${r.id}/thumb/?full_size=true`, `${OPENVERSE}${r.id}/thumb/`]);
+}
+
 export interface PhotoService {
   /** The photo for a Wikipedia article title; null when there is none. */
   get(title: string): Promise<Image | null>;
@@ -71,7 +99,7 @@ export function createPhotoService(options: {
     doFetch(url, { ...init, headers: { 'User-Agent': USER_AGENT } });
   const cache = createImageCache({
     dir: join(options.homeDir, 'cache', 'photos'),
-    maxBytes: 2 * 1024 * 1024,
+    maxBytes: 6 * 1024 * 1024,
     minBytes: 1000,
     label: 'photos',
     fetch: identified,
@@ -87,6 +115,15 @@ export function createPhotoService(options: {
       const sources = photoSources(await res.json());
       if (!sources.length) console.info(`[photos] Wikipedia has no photo for "${title}"`);
       return sources;
+    },
+    fallback: async (title) => {
+      const query = new URLSearchParams({ q: title, page_size: '10', mature: 'false' });
+      const res = await identified(`${OPENVERSE}?${query}`, { signal: AbortSignal.timeout(5000) });
+      if (!res.ok) {
+        console.info(`[photos] Openverse answered ${res.status} for "${title}"`);
+        return [];
+      }
+      return openverseSources(await res.json());
     },
   });
   return {

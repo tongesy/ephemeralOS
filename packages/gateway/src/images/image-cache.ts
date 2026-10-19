@@ -42,6 +42,8 @@ export interface ImageCacheOptions {
   minBytes: number;
   /** Where the image for a key might be, best first. Each answers a miss with a 404. */
   sources(key: string): Promise<string[]>;
+  /** Where else to look, asked only when none of `sources` gave an image. */
+  fallback?(key: string): Promise<string[]>;
   fetch: typeof fetch;
   label: string;
 }
@@ -101,12 +103,15 @@ export function createImageCache(options: ImageCacheOptions): ImageCache {
     const file = join(options.dir, createHash('sha256').update(key).digest('hex').slice(0, 32));
     const hit = await cached(file);
     if (hit) return hit;
-    for (const url of await options.sources(key).catch(() => [])) {
-      const bytes = await download(url);
-      if (!bytes) continue;
-      await mkdir(options.dir, { recursive: true, mode: 0o700 });
-      await writeFile(file, bytes);
-      return bytes;
+    const lookups = [options.sources, ...(options.fallback ? [options.fallback] : [])];
+    for (const lookup of lookups) {
+      for (const url of await lookup(key).catch(() => [])) {
+        const bytes = await download(url);
+        if (!bytes) continue;
+        await mkdir(options.dir, { recursive: true, mode: 0o700 });
+        await writeFile(file, bytes);
+        return bytes;
+      }
     }
     console.info(`[${options.label}] none found for ${key}`);
     misses.set(key, Date.now() + MISS_MS);
