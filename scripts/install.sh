@@ -83,7 +83,7 @@ chmod +x "$BIN/ephemeralos"
 # --- Setup -------------------------------------------------------------------------
 home="${EOS_HOME:-$HOME/.ephemeralos}"
 if [ ! -f "$home/.env" ]; then
-  if [ -r /dev/tty ]; then
+  if (: </dev/tty) 2>/dev/null; then # a terminal, even when piped from curl
     "$BIN/ephemeralos" init </dev/tty
   else
     echo "Run \`ephemeralos init\` to add your API keys."

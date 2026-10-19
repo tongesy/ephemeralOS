@@ -11,21 +11,19 @@ Logs go to `~/.local/state/ephemeralos/`.
 
 ## 1. Install
 
-Omarchy ships Chromium and mise. Node 22.12+ and pnpm 10 come from mise:
-
 ```sh
-mise use -g node@22 pnpm@10
-git clone https://github.com/tongesy/ephemeralos ~/ephemeralos
-cd ~/ephemeralos
-pnpm install
-pnpm ephemeralos init   # keys, name, voice, location, wake-word models
-pnpm build
+curl -fsSL https://raw.githubusercontent.com/tongesy/ephemeralos/main/scripts/install.sh | sh
 ```
+
+This puts the app in `~/.local/share/ephemeralos/app` (with its own Node if yours is older
+than 22.12) and asks for your keys. From a clone instead, run `pnpm install`,
+`pnpm ephemeralos init` and `pnpm build`, and use the kiosk script from your clone; it uses
+Node from mise when the installer's isn't there.
 
 ## 2. Try it
 
 ```sh
-~/ephemeralos/deploy/linux/ephemeralos-kiosk
+~/.local/share/ephemeralos/app/deploy/linux/ephemeralos-kiosk
 ```
 
 The orb fills the screen. The first launch asks for the microphone once: allow it, and the
@@ -41,7 +39,7 @@ A USB speakerphone works far better across a room than laptop speakers.
 Add to `~/.config/hypr/autostart.conf`:
 
 ```ini
-exec-once = ~/ephemeralos/deploy/linux/ephemeralos-kiosk
+exec-once = ~/.local/share/ephemeralos/app/deploy/linux/ephemeralos-kiosk
 ```
 
 Omarchy logs in automatically after the disk-encryption password, so after a power cut the
@@ -61,14 +59,14 @@ So it keeps running with the lid closed, or with a detachable screen off its bas
 
 ```sh
 sudo mkdir -p /etc/systemd/logind.conf.d
-sudo cp ~/ephemeralos/deploy/linux/no-lid-sleep.conf /etc/systemd/logind.conf.d/
+sudo cp ~/.local/share/ephemeralos/app/deploy/linux/no-lid-sleep.conf /etc/systemd/logind.conf.d/
 sudo systemctl kill -s HUP systemd-logind
 ```
 
 ## Updating
 
 ```sh
-cd ~/ephemeralos && git pull && pnpm install && pnpm build
+curl -fsSL https://raw.githubusercontent.com/tongesy/ephemeralos/main/scripts/install.sh | sh
 pkill -f 'ephemeralos.mjs start'   # the kiosk restarts both on the new build
 ```
 

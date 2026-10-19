@@ -39,7 +39,26 @@ The full brief is in [`docs/BRIEF.md`](docs/BRIEF.md).
 
 ## Quick start
 
-Requires Node 22.12+, pnpm 10, Chrome, and an OpenAI API key.
+You need Chrome, a microphone, speakers and an OpenAI API key. Install with one line, which
+also sets up Node if you don't have it:
+
+```sh
+# macOS and Linux
+curl -fsSL https://raw.githubusercontent.com/tongesy/ephemeralos/main/scripts/install.sh | sh
+```
+
+```powershell
+# Windows (PowerShell)
+irm https://raw.githubusercontent.com/tongesy/ephemeralos/main/scripts/install.ps1 | iex
+```
+
+The installer asks for your keys, then you start it:
+
+```sh
+ephemeralos start       # http://localhost:4317
+```
+
+Run the installer again to update. Or, from a clone, with Node 22.12+ and pnpm 10:
 
 ```sh
 pnpm install
@@ -69,6 +88,25 @@ them to your machine rather than ephemeralOS bundling them. Skip them and a clic
 starts a conversation instead. A custom "Hey Orb" model is on the roadmap.
 
 A USB speakerphone helps a lot across a room: it cancels echo far better than laptop speakers.
+
+### Always-on display (Omarchy)
+
+ephemeralOS can run full screen on a spare laptop, starting on login and never sleeping. These
+steps are for [Omarchy](https://omarchy.org) (Arch and Hyprland), and are written so you can
+hand them to an assistant to run. The details are in [`docs/kiosk.md`](docs/kiosk.md).
+
+1. Install, and enter your keys when asked:
+   `curl -fsSL https://raw.githubusercontent.com/tongesy/ephemeralos/main/scripts/install.sh | sh`
+2. Start it on login by adding this line to `~/.config/hypr/autostart.conf`:
+   `exec-once = ~/.local/share/ephemeralos/app/deploy/linux/ephemeralos-kiosk`
+3. Keep the screen on: in `~/.config/hypr/hypridle.conf`, comment out every `listener { ... }`
+   block, then run `pkill hypridle; hypridle >/dev/null 2>&1 & disown`.
+4. Keep it awake with the lid closed:
+   `sudo mkdir -p /etc/systemd/logind.conf.d && sudo cp ~/.local/share/ephemeralos/app/deploy/linux/no-lid-sleep.conf /etc/systemd/logind.conf.d/ && sudo systemctl kill -s HUP systemd-logind`
+5. Run `~/.local/share/ephemeralos/app/deploy/linux/ephemeralos-kiosk` (or log out and back
+   in). Chromium opens full screen. Allow the microphone once and it's remembered.
+
+The kiosk script restarts the gateway and the browser together if either one exits.
 
 ### Development
 
