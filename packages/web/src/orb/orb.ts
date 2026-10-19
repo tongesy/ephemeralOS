@@ -101,6 +101,9 @@ export class Orb {
     this.resize();
   }
 
+  /** Where the orb is drawn this frame, in CSS pixels: its centre and radius. */
+  anchor = { x: 0, y: 0, radius: 0 };
+
   get state(): OrbState {
     return this.blend.state;
   }
@@ -159,11 +162,12 @@ export class Orb {
 
     // CSS pixels (top-left origin) → drawing-buffer pixels (bottom-left origin).
     const ratio = this.renderer.getPixelRatio();
-    (u.uCenter!.value as Vector2).set(
-      this.x.update(dtMs) * ratio,
-      (window.innerHeight - this.y.update(dtMs)) * ratio,
-    );
-    u.uRadius!.value = this.radius.update(dtMs) * this.look.size * ratio;
+    const x = this.x.update(dtMs);
+    const y = this.y.update(dtMs);
+    const radius = this.radius.update(dtMs) * this.look.size;
+    this.anchor = { x, y, radius };
+    (u.uCenter!.value as Vector2).set(x * ratio, (window.innerHeight - y) * ratio);
+    u.uRadius!.value = radius * ratio;
 
     u.uTime!.value = this.time;
     (u.uState!.value as number[]).splice(0, weights.length, ...weights);

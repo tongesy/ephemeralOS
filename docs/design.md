@@ -46,21 +46,28 @@ A ball of plasma: large, slow fields of colour folded by a gentle domain warp, w
 spots that drift through it and light gathering at the rim. Its aura tints the page around
 it. Each state is a row in the look table in [`orb/look.ts`](../packages/web/src/orb/look.ts):
 
-| State       | Feel                                                                    |
-| ----------- | ----------------------------------------------------------------------- |
-| `zen`       | Small, faint and half see-through; barely moving; reads as asleep       |
-| `listening` | Swells to full size in bright azure; the edge ripples with your voice   |
-| `thinking`  | Heather and lilac; the plasma turns in a slow vortex                    |
-| `speaking`  | Warm coral, sand and rose; the core and its shells pulse with the voice |
-| `error`     | Muted clay and stone, nearly still; distinct but calm                   |
+| State       | Feel                                                                          |
+| ----------- | ----------------------------------------------------------------------------- |
+| `zen`       | Small, faint and half see-through; barely moving; reads as asleep             |
+| `listening` | Awake in cool azure, a little under full size; ripples gently with your voice |
+| `thinking`  | Draws in, heather and lilac; three small moons rise out and circle it         |
+| `speaking`  | Its largest, in warm coral, sand and rose; it moves with every syllable       |
+| `error`     | Muted clay and stone, nearly still; distinct but calm                         |
 
 To tune the look, edit the numbers in that table: the three `colors`, `intensity`, `warp`,
 `swirl`, `flow`, `ripple`, `breath`, `pulse`, `aura`, `size` and `opacity`. The shader blends
 between rows, so a change to one state never breaks a transition.
 
-Asleep and awake must never be confused. When the microphone opens after the wake word, the
-orb swells to `listening` and a soft rising chime plays (`audio/chime.ts`, synthesised); a
-falling chime marks going back to sleep. These are the only sounds ephemeralOS makes itself.
+Each state reads at a glance: by size (speaking is largest, thinking smallest of the awake
+states), by colour, by the moons, and by a small word under the orb ("Listening",
+"Thinking", "Speaking") that follows it as it moves. The moons are drawn in the orb's shader,
+on a tilted orbit so each passes behind the orb.
+
+Asleep and awake must never be confused. The moment the wake word fires, the orb swells to
+`listening` and a soft rising chime plays (`audio/chime.ts`, synthesised): you can talk
+straight away. The connection takes a second or two to open, so the microphone reaches it
+through a delay line (`audio/catch-up.ts`) that replays everything from the wake word on,
+then drops back to live at your first pause. A falling chime marks going back to sleep. These are the only sounds ephemeralOS makes itself.
 
 ## Space
 

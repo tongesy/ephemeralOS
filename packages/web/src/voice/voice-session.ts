@@ -24,8 +24,10 @@ export interface VoiceSessionDeps {
   audio(stream: MediaStream | null): void;
   /** The user started speaking (a new turn). */
   heard?(): void;
-  /** The microphone is open and the voice can hear: the moment to start talking. */
+  /** The connection is open and hears the microphone (and what was said while it opened). */
   ready?(): void;
+  /** The user paused: the connection can stop catching up and listen live. */
+  caughtUp?(): void;
   /** The session ended, for whatever reason; the wake word can listen again. */
   ended(): void;
   settings: { silenceTimeoutSeconds: number; sleepPhrases: readonly string[] };
@@ -86,7 +88,9 @@ export class VoiceSession {
     this.closing = false;
     this.speaking = false;
     this.pendingTools = 0;
-    this.deps.setState('thinking');
+    // What is said from now on is kept and heard once the connection opens, so the user can
+    // talk straight away: the orb listens from the wake word on.
+    this.deps.setState('listening');
     try {
       const link = await this.deps.connect({
         onEvent: (event) => this.handle(event),
@@ -99,7 +103,6 @@ export class VoiceSession {
       }
       this.link = link;
       this.phase = 'open';
-      this.deps.setState('listening');
       this.deps.ready?.();
       this.armSilence();
     } catch (error) {
@@ -172,9 +175,11 @@ export class VoiceSession {
         this.deps.setState('listening');
         break;
       case 'input_audio_buffer.speech_stopped':
+        this.deps.caughtUp?.();
         this.deps.setState('thinking');
         break;
       case 'output_audio_buffer.started':
+        this.deps.caughtUp?.();
         this.speaking = true;
         this.disarmSilence();
         this.deps.setState('speaking');

@@ -1,3 +1,4 @@
+import type { OrbState } from '@ephemeralos/shared';
 import '@fontsource-variable/geist';
 import '@fontsource-variable/geist-mono';
 import './styles/tokens.css';
@@ -12,6 +13,7 @@ import type { DevTools } from './dev/dev-tools.ts';
 import { DisplayManager } from './display/display-manager.ts';
 import { GatewayClient } from './gateway-client.ts';
 import { MediaPlayer } from './media/media-player.ts';
+import { MicCatchUp } from './audio/catch-up.ts';
 import type { Rect } from './orb/placement.ts';
 import { connectRealtime } from './voice/realtime-client.ts';
 import { VoiceSession } from './voice/voice-session.ts';
@@ -97,6 +99,27 @@ window.addEventListener('resize', () => {
 });
 
 // --- Microphone: the one permitted click --------------------------------------
+/** What the orb is doing, in a word under it. Asleep it says nothing. */
+const ORB_WORDS: Partial<Record<OrbState, string>> = {
+  listening: 'Listening',
+  thinking: 'Thinking',
+  speaking: 'Speaking',
+  error: "Can't connect",
+};
+const orbLabel = document.querySelector<HTMLElement>('#orb-label')!;
+
+function labelOrb(state: OrbState): void {
+  const word = ORB_WORDS[state];
+  if (word) orbLabel.textContent = word;
+  orbLabel.toggleAttribute('data-visible', Boolean(word));
+}
+
+function placeOrbLabel(): void {
+  const { x, y, radius } = orb.anchor;
+  // Just clear of the orb (and the moons that circle it when thinking).
+  orbLabel.style.transform = `translate(${x}px, ${y + radius * 1.5 + 18}px)`;
+}
+
 function showHint(text: string | null): void {
   if (text) {
     hint.textContent = text;
@@ -184,6 +207,9 @@ async function startVoice(gateway: GatewayClient): Promise<void> {
     return;
   }
   const microphone = audio.microphone!;
+  // The connection hears the microphone through a delay line, so nothing said while it
+  // opens is lost.
+  const catchUp = new MicCatchUp(audio.context, microphone.source);
   let wake: WakeWord | null = null;
   let sessionId = '';
 
@@ -192,15 +218,12 @@ async function startVoice(gateway: GatewayClient): Promise<void> {
     setState: (state) => {
       if (state !== orb.state) console.debug(`[voice] ${state}`);
       orb.setState(state);
+      labelOrb(state);
     },
     connect: async (handlers) => {
       sessionId = crypto.randomUUID();
       const session = await gateway.realtimeSession();
-      return connectRealtime(
-        session.clientSecret,
-        microphone.stream.getAudioTracks()[0]!,
-        handlers,
-      );
+      return connectRealtime(session.clientSecret, catchUp.track, handlers);
     },
     callTool: (callId, name, args) => gateway.callTool(callId, name, args),
     localTool,
@@ -214,10 +237,10 @@ async function startVoice(gateway: GatewayClient): Promise<void> {
         audio.attachOutput(audio.context.createMediaStreamSource(stream));
       } else audio.detachOutput();
     },
-    // A chime as the microphone opens, so after the wake word you know when to talk.
     // A new turn from the user may change what is shown; until then, a tool's result stays.
     heard: () => display.userSpoke(),
-    ready: () => playChime(audio.context, 'open'),
+    ready: () => catchUp.connected(),
+    caughtUp: () => catchUp.caughtUp(),
     ended: () => {
       playChime(audio.context, 'close');
       display.sessionEnded();
@@ -231,6 +254,9 @@ async function startVoice(gateway: GatewayClient): Promise<void> {
     clearTimeout(readyTimer);
     showHint(null);
     wake?.listen(false);
+    // From the wake word on, what you say is kept: the chime says you can talk now.
+    catchUp.woke();
+    playChime(audio.context, 'open');
     display.sessionStarted();
     // Whatever is playing drops to a murmur at once, so the microphone hears you.
     media.setConversing(true);
@@ -279,6 +305,7 @@ function tick(now: number): void {
   backdrop.update(dt);
   backdrop.render();
   orb.frame(dt, levels);
+  placeOrbLabel();
 
   meter.record(dt);
   const stats = meter.stats();
