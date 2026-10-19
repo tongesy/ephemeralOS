@@ -368,7 +368,7 @@ export function toolParameters(schema: z.ZodType): Record<string, unknown> {
 }
 
 export const DISPLAY_TOOL_DESCRIPTION =
-  'Show something on screen. Use it for lists of 3+ options, numbers worth comparing, tables, charts and anything to follow along with. Then say a one-sentence gist; never read it out in full. Replaces what is shown (back brings it back).';
+  'Show something on screen. Use it for lists of 3+ options, numbers worth comparing, tables, charts and anything to follow along with. To show pictures ("photos of Italy", "show me the Colosseum"), use gallery (or hero for one), with each photo set to the exact title of an English Wikipedia article, such as "Amalfi Coast"; set slideshow for a full-screen show. Never describe pictures in a card instead. Then say a one-sentence gist; never read it out in full. Replaces what is shown (back brings it back).';
 
 export const SCREEN_TOOL_DESCRIPTION =
   'Act on what is on screen when the user asks: "next", "go back", "scroll down", "open number two", "make it bigger", "dismiss", "clear the screen". Returns what is now shown.';
