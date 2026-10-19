@@ -100,6 +100,34 @@ describe('weather tool', () => {
     });
   });
 
+  it('finds "Town, Country" by name and picks the right country', async () => {
+    const fetchMock = vi.fn(async (url: URL | string) => {
+      const href = String(url);
+      if (!href.includes('geocoding')) return new Response(JSON.stringify(FORECAST));
+      return new Response(
+        JSON.stringify({
+          results: [
+            { name: 'Perth', latitude: -31.9, longitude: 115.9, country: 'Australia' },
+            {
+              name: 'Perth',
+              latitude: 56.4,
+              longitude: -3.4,
+              country: 'United Kingdom',
+              admin1: 'Scotland',
+            },
+          ],
+        }),
+      );
+    });
+    const tool = createWeatherTool({
+      homeDir: await home({}),
+      fetch: fetchMock as unknown as typeof fetch,
+    });
+    const result = await tool.run({ location: 'Perth, UK', days: '3' }, { display: () => {} });
+    expect(String(fetchMock.mock.calls[0]![0])).toContain('name=Perth&');
+    expect(result).toMatchObject({ place: 'Perth, Scotland, United Kingdom' });
+  });
+
   it('uses Fahrenheit for imperial users', async () => {
     const fetchMock = fakeFetch();
     const tool = createWeatherTool({

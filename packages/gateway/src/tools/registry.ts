@@ -43,6 +43,7 @@ export class ToolRegistry {
       return JSON.stringify((await tool.run(args, context)) ?? { ok: true });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[tools] ${name} failed: ${message}`);
       return JSON.stringify({ error: message });
     }
   }

@@ -11,14 +11,15 @@ import type { GatewayTool } from './registry.ts';
 
 const GEOCODE_URL = 'https://geocoding-api.open-meteo.com/v1/search';
 const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
+const TIMEOUT_MS = 8000;
 
 export const WeatherArgs = z.object({
   location: z
     .string()
     .max(120)
-    .optional()
+    .nullish()
     .describe("A place name; leave out for the user's home location"),
-  days: z.number().int().min(1).max(14).optional().describe('How many days; default 7'),
+  days: z.coerce.number().int().min(1).max(14).nullish().describe('How many days; default 7'),
 });
 
 /** WMO weather interpretation codes, in plain words. */
@@ -83,10 +84,46 @@ const Forecast = z.object({
 });
 
 async function getJson<T extends z.ZodType>(doFetch: typeof fetch, url: URL, schema: T) {
-  const res = await doFetch(url, { headers: { Accept: 'application/json' } });
+  const res = await doFetch(url, {
+    headers: { Accept: 'application/json' },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
   if (!res.ok) throw new Error(`The weather service answered ${res.status}`);
   return schema.parse(await res.json()) as z.infer<T>;
 }
+
+type Place = NonNullable<z.infer<typeof Geocode>['results']>[number];
+
+/**
+ * Open-Meteo matches a bare place name only, so "Brighton, UK" finds nothing. Search for
+ * the part before the first comma and use the rest to pick between same-named places.
+ */
+async function geocode(doFetch: typeof fetch, query: string): Promise<Place | undefined> {
+  const [name = '', ...rest] = query.split(',').map((part) => part.trim());
+  const qualifiers = rest.filter(Boolean).map((part) => part.toLowerCase());
+  const url = new URL(GEOCODE_URL);
+  url.search = new URLSearchParams({ name, count: '10', language: 'en' }).toString();
+  const results = (await getJson(doFetch, url, Geocode)).results ?? [];
+  const matches = (place: Place, qualifier: string) =>
+    [place.country, place.admin1].some((field) => {
+      const value = field?.toLowerCase() ?? '';
+      return value.includes(qualifier) || (ALIASES[qualifier] ?? []).includes(value);
+    });
+  return (
+    results.find((place) => qualifiers.every((q) => matches(place, q))) ??
+    results.find((place) => qualifiers.some((q) => matches(place, q))) ??
+    results[0]
+  );
+}
+
+/** Country short forms people say that don't appear in the full name. */
+const ALIASES: Record<string, string[]> = {
+  uk: ['united kingdom'],
+  gb: ['united kingdom'],
+  us: ['united states'],
+  usa: ['united states'],
+  uae: ['united arab emirates'],
+};
 
 /** "Mon 20" in the place's own calendar (dates arrive as local YYYY-MM-DD). */
 function dayLabel(isoDate: string, index: number): string {
@@ -114,9 +151,7 @@ export function createWeatherTool(options: { homeDir: string; fetch?: typeof fet
         return { error: 'No location given and no home location set. Ask the user where.' };
       }
 
-      const geoUrl = new URL(GEOCODE_URL);
-      geoUrl.search = new URLSearchParams({ name: query, count: '1', language: 'en' }).toString();
-      const place = (await getJson(doFetch, geoUrl, Geocode)).results?.[0];
+      const place = await geocode(doFetch, query);
       if (!place) return { error: `Couldn't find a place called "${query}".` };
       const placeName = [
         place.name,
