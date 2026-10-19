@@ -49,6 +49,8 @@ export class DisplayManager {
     private readonly onLayout: (occupied: Rect[]) => void,
     /** The world behind what is shown (the weather), or null for the plain page. */
     private readonly onScene: (scene: Scene | null) => void = () => {},
+    /** How long new content waits for the stage to clear (a player moving aside). */
+    private readonly entranceDelay: () => number = () => 0,
   ) {
     window.addEventListener('resize', () => this.reportLayout());
   }
@@ -221,12 +223,16 @@ export class DisplayManager {
       return;
     }
     this.fadeOut(previous);
+    const wait = previous ? 0 : this.entranceDelay();
     document.body.append(next);
     this.el = next;
-    reveal(next, 140);
+    reveal(next, 140 + wait);
     requestAnimationFrame(() => {
-      next.toggleAttribute('data-shown', true);
+      // Reported now, so whatever is on stage starts moving aside before this arrives.
       this.reportLayout();
+      setTimeout(() => {
+        if (generation === this.generation) next.toggleAttribute('data-shown', true);
+      }, wait);
     });
   }
 
