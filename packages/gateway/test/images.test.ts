@@ -97,10 +97,24 @@ describe('photos', () => {
     'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Haaland.jpg/330px-Haaland.jpg';
 
   it('takes the lead image from a Wikipedia summary, larger when it can', () => {
-    expect(photoSources({ type: 'standard', thumbnail: { source: thumb } })).toEqual([
-      thumb.replace('330px', '640px'),
+    // Only Wikimedia's standard widths (it refuses others), never wider than the original.
+    const original = 'https://upload.wikimedia.org/wikipedia/commons/a/a1/Haaland.jpg';
+    expect(
+      photoSources({
+        type: 'standard',
+        thumbnail: { source: thumb },
+        originalimage: { source: original, width: 1000 },
+      }),
+    ).toEqual([
+      thumb.replace('330px', '960px'),
+      thumb.replace('330px', '500px'),
       thumb,
+      thumb.replace('330px', '250px'),
+      original,
     ]);
+    expect(photoSources({ type: 'standard', thumbnail: { source: thumb } })[0]).toBe(
+      thumb.replace('330px', '1280px'),
+    );
     expect(photoSources({ type: 'disambiguation', thumbnail: { source: thumb } })).toEqual([]);
     expect(photoSources({ thumbnail: { source: 'https://evil.example/x.jpg' } })).toEqual([]);
     expect(photoSources({ title: 'No image' })).toEqual([]);
