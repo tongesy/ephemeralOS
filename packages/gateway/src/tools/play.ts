@@ -88,7 +88,7 @@ export function createPlayTool(options: {
       type: 'function',
       name: 'play',
       description:
-        'Play a podcast episode, a video or a piece of music. It starts on screen by itself. Say a few words first ("Let me find it"), then say what is playing in one short sentence and call end_session so it can be heard; the user wakes you to pause, skip or stop.',
+        'Play a podcast episode, a song or other music, or a video, right here: this is how you play anything. Use it whenever the user wants to hear or watch something. It starts on screen by itself. Say a few words first ("Let me find it"), then say what is playing in one short sentence and call end_session so it can be heard; the user wakes you to pause, skip or stop.',
       parameters: toolParameters(PlayArgs),
     },
     async run(rawArgs, context) {
