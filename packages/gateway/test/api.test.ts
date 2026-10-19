@@ -134,6 +134,9 @@ describe('POST /api/realtime/session', () => {
     expect(body.session.instructions).toContain('Calm and dry.');
     expect(body.session.instructions).toContain('Prefers metric units.');
     expect(body.session.tools.map((t: { name: string }) => t.name)).toContain('end_session');
+    // It knows it can play things, so it doesn't send the user to another app.
+    expect(body.session.tools.map((t: { name: string }) => t.name)).toContain('play');
+    expect(body.session.instructions).toContain("never say you can't play");
   });
 
   it('explains a missing key instead of failing silently', async () => {
