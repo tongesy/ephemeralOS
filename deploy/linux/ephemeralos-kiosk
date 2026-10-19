@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# Run ephemeralOS as an always-on display: the gateway plus Chromium in kiosk mode.
+# If either one exits, both restart together, because the page only works with the
+# launch token of the gateway that served it. Start it from the desktop's autostart.
+set -uo pipefail
+
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+URL="http://localhost:${EOS_PORT:-4317}"
+STATE="${XDG_STATE_HOME:-$HOME/.local/state}/ephemeralos"
+BROWSER="${EOS_BROWSER:-$(command -v chromium || command -v google-chrome-stable || true)}"
+
+if [[ -z "$BROWSER" ]]; then
+  echo "No Chromium or Chrome found. Install one, or set EOS_BROWSER." >&2
+  exit 1
+fi
+mkdir -p "$STATE"
+cd "$REPO" || exit 1
+
+# Node may come from mise, whose shims aren't on the PATH of the desktop's autostart.
+NODE=(node)
+command -v mise >/dev/null && NODE=(mise exec -- node)
+
+gateway=
+browser=
+stop() {
+  pkill -P "$gateway" 2>/dev/null # in case mise ran node as a child
+  kill $gateway $browser 2>/dev/null
+  wait 2>/dev/null
+}
+trap 'stop; exit 0' INT TERM
+
+while true; do
+  "${NODE[@]}" packages/cli/bin/ephemeralos.mjs start >>"$STATE/gateway.log" 2>&1 &
+  gateway=$!
+  for _ in {1..60}; do
+    curl -fs -o /dev/null "$URL" && break
+    sleep 0.5
+  done
+
+  # A profile of its own keeps the microphone grant and stays out of your everyday browser.
+  # The autoplay flag lets the page start audio without a click on every launch.
+  "$BROWSER" --app="$URL" --kiosk \
+    --user-data-dir="$STATE/browser" \
+    --ozone-platform-hint=auto \
+    --autoplay-policy=no-user-gesture-required \
+    --no-first-run --no-default-browser-check \
+    --noerrdialogs --disable-session-crashed-bubble --disable-features=Translate \
+    >>"$STATE/browser.log" 2>&1 &
+  browser=$!
+
+  wait -n $gateway $browser
+  echo "$(date -Is) restarting after an exit" >>"$STATE/gateway.log"
+  stop
+  sleep 2
+done
