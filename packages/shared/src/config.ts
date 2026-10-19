@@ -25,6 +25,16 @@ export const Config = z.object({
   location: z.string().min(1).max(120).optional(),
   /** Units for the weather and other measurements. */
   units: z.enum(['metric', 'imperial']).default('metric'),
+  /**
+   * Models for web search and deeper work. The provider is chosen by key: Anthropic when
+   * an Anthropic key is set, otherwise OpenAI.
+   */
+  brain: z
+    .object({
+      anthropicModel: z.string().min(1).default('claude-haiku-5-5'),
+      openaiModel: z.string().min(1).default('gpt-6-luna'),
+    })
+    .prefault({}),
   /** Close the voice session after this long with nobody speaking. */
   silenceTimeoutSeconds: z.number().int().min(3).max(120).default(10),
   /** Saying any of these ends the session. Matched loosely (case and punctuation). */

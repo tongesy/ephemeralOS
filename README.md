@@ -18,8 +18,8 @@ Open source, bring your own API keys, local-first.
   <img src="docs/assets/open-space.png" alt="A glass card fades in on the left; the orb has glided into the open space on the right" width="80%">
 </p>
 
-> **Status:** early. The orb (M1), the voice loop (M2) and the display (M3) are here; delegated
-> deep work (M4) is next.
+> **Status:** early. The orb (M1), the voice loop (M2), the display (M3) and quick web search
+> are here; background deep work (the rest of M4) is next.
 > See the [roadmap](#roadmap).
 
 ## Principles
@@ -58,6 +58,10 @@ table or a chart. Say "open number two", "next", "back", "scroll down", "make it
 conversation ends. Ask "what's the weather this
 week?" and you hear a short summary while the forecast appears as a table. Weather comes from
 [Open-Meteo](https://open-meteo.com), which needs no key; `init` asks where you are.
+
+For anything current, such as the news, prices or scores, the orb searches the web. It says a
+line or two and shows a short summary with its sources. Searches use Claude when you've given
+`init` an Anthropic key, and OpenAI otherwise; set the models in `config.json` under `brain`.
 
 `init` is the only setup step, and it happens in the terminal: keys are typed there, hidden,
 and saved to `~/.ephemeralos/.env` (mode `600`). They are never typed into, sent to, or spoken
@@ -129,7 +133,7 @@ transcripts (`transcripts/YYYY-MM-DD.jsonl`) stay in `~/.ephemeralos/`.
 - [x] **M1** The orb: plasma, five states, audio-shaped, glides into open space
 - [x] **M2** Voice loop: `init`, wake word, Realtime session, barge-in, fallback
 - [x] **M3** Display: cards, lists, tables, charts, voice navigation, live weather
-- [ ] **M4** Delegate: async Claude jobs with web search
+- [ ] **M4** Delegate: quick web search (done), async deep-work jobs
 - [ ] **M5** Memory: remember, recall, forget
 - [ ] **M6** Polish and release
 
