@@ -11,7 +11,8 @@ const ANSWER = `Here is what I found:
  "show": {"component": "table", "columns": ["Team", "Pts"],
    "rows": [["Manchester City", 21], ["Arsenal ([bbc.co.uk](https://bbc.co.uk/x))", 18]],
    "row_images": ["https://upload.wikimedia.org/city.svg", "javascript:alert(1)"],
-   "row_domains": ["https://www.mancity.com/", "127.0.0.1"]}}`;
+   "row_domains": ["https://www.mancity.com/", "127.0.0.1"],
+   "row_icons": ["crest-of-arms", "trophy"]}}`;
 
 async function home(env: string, config: object = { location: 'Brisbane, Australia' }) {
   const dir = await mkdtemp(join(tmpdir(), 'eos-search-'));
@@ -80,6 +81,7 @@ describe('search tool', () => {
       ],
       row_images: ['https://upload.wikimedia.org/city.svg', ''],
       row_domains: ['mancity.com', ''],
+      row_icons: ['', 'trophy'],
     });
   });
 

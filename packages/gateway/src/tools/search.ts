@@ -108,11 +108,12 @@ export function tidy(markdown: string): string {
 }
 
 const HTTPS_URL = /^https:\/\/\S+$/;
+const ICONS = new Set<string>(ICON_NAMES);
 
 /**
- * Clean the text the brain put in a layout. An image that isn't a plain https URL, or a
- * website that isn't a public domain, is dropped (a row keeps its place with ""), so one
- * bad logo never costs the whole layout.
+ * Clean the text the brain put in a layout. An image that isn't a plain https URL, a
+ * website that isn't a public domain, or an icon we don't bundle is dropped (a row keeps
+ * its place with ""), so one bad mark never costs the whole layout.
  */
 function tidyLayout(show: Record<string, unknown>): Record<string, unknown> {
   const clean = (value: unknown, key?: string): unknown => {
@@ -121,6 +122,9 @@ function tidyLayout(show: Record<string, unknown>): Record<string, unknown> {
     }
     if (typeof value === 'string' && key?.includes('domain')) {
       return logoDomain(value) ?? (key === 'row_domains' ? '' : undefined);
+    }
+    if (typeof value === 'string' && key?.includes('icon') && key !== 'icon_column') {
+      return ICONS.has(value) ? value : key === 'row_icons' ? '' : undefined;
     }
     if (typeof value === 'string') return tidy(value);
     if (Array.isArray(value)) return value.map((v) => clean(v, key));
