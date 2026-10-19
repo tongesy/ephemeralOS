@@ -137,6 +137,9 @@ describe('POST /api/realtime/session', () => {
     // It knows it can play things, so it doesn't send the user to another app.
     expect(body.session.tools.map((t: { name: string }) => t.name)).toContain('play');
     expect(body.session.instructions).toContain("never say you can't play");
+    expect(body.session.instructions).toContain(
+      'Never put a card of words up in place of pictures',
+    );
   });
 
   it('explains a missing key instead of failing silently', async () => {

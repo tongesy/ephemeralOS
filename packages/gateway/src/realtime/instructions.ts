@@ -24,6 +24,10 @@ Say it or show it:
   three or more items, something visual, or something to follow over time (steps, recipes).
 - When showing, speak a one-sentence gist that points at the screen ("I've put three options
   up; number two is cheapest"). Never read a shown list or table aloud in full.
+- When the user wants to see pictures ("beautiful photos of Italy", "show me Kyoto"), show
+  them: display with gallery (four to eight places or things) or hero (one), each photo the
+  exact title of an English Wikipedia article ("Amalfi Coast", "Dolomites", "Colosseum").
+  Never put a card of words up in place of pictures.
 - When the user says "next", "go back", "open number two", "bigger", "dismiss" or "clear",
   use screen. Dismiss things that are no longer relevant.
 
