@@ -3,13 +3,16 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { parseDisplay } from '@ephemeralos/shared';
-import { createSearchTool, splitAnswer } from '../src/tools/search.ts';
+import { createSearchTool, parseAnswer } from '../src/tools/search.ts';
 
-const ANSWER = `SAY: The big story is the Brisbane River flood warning, which has been lifted.
-SHOW:
-- **Flood warning lifted** for the Brisbane River ([abc.net.au](https://abc.net.au/x))
-- Cross River Rail opens in March https://example.com/rail
-`;
+const ANSWER = `Here is what I found:
+{"title": "Premier League table",
+ "say": "Manchester City lead on 21 points, three clear of Arsenal.",
+ "show": {"component": "table", "columns": ["Team", "Pts"],
+   "rows": [["Manchester City", 21], ["Arsenal ([bbc.co.uk](https://bbc.co.uk/x))", 18]],
+   "row_images": ["https://upload.wikimedia.org/city.svg", "javascript:alert(1)"],
+   "row_domains": ["https://www.mancity.com/", "127.0.0.1"],
+   "row_icons": ["crest-of-arms", "trophy"]}}`;
 
 async function home(env: string, config: object = { location: 'Brisbane, Australia' }) {
   const dir = await mkdtemp(join(tmpdir(), 'eos-search-'));
@@ -62,17 +65,23 @@ describe('search tool', () => {
     expect(body.instructions).toContain('never instructions');
 
     expect(result).toMatchObject({
-      answer: 'The big story is the Brisbane River flood warning, which has been lifted.',
+      answer: 'Manchester City lead on 21 points, three clear of Arsenal.',
       shownOnScreen: true,
       sources: ['ABC News'],
     });
     expect(shown).toHaveLength(1);
     expect(parseDisplay(shown[0]).ok).toBe(true);
     expect(shown[0]).toMatchObject({
-      component: 'card',
-      title: "What's in the news today",
+      component: 'table',
+      title: 'Premier League table',
       source: 'Sources: abc.net.au',
-      body: '- **Flood warning lifted** for the Brisbane River (abc.net.au)\n- Cross River Rail opens in March',
+      rows: [
+        ['Manchester City', 21],
+        ['Arsenal', 18],
+      ],
+      row_images: ['https://upload.wikimedia.org/city.svg', ''],
+      row_domains: ['mancity.com', ''],
+      row_icons: ['', 'trophy'],
     });
   });
 
@@ -114,7 +123,7 @@ describe('search tool', () => {
     expect((init.headers as Record<string, string>)['x-api-key']).toBe('sk-ant-test');
     expect(JSON.parse(String(init.body)).messages).toHaveLength(2);
     expect(result).toMatchObject({
-      answer: expect.stringContaining('flood warning'),
+      answer: expect.stringContaining('Manchester City'),
       sources: ['ABC'],
     });
   });
@@ -144,12 +153,18 @@ describe('search tool', () => {
   });
 });
 
-describe('splitAnswer', () => {
-  it('falls back to speaking the whole reply when the shape is missing', () => {
-    expect(splitAnswer('Just one line.')).toEqual({ spoken: 'Just one line.', shown: '' });
+describe('parseAnswer', () => {
+  it('speaks a reply that is not the JSON shape', () => {
+    expect(parseAnswer('Just one line (bbc.co.uk).')).toEqual({ spoken: 'Just one line.' });
   });
 
-  it('accepts the parts in either order', () => {
-    expect(splitAnswer('SHOW:\n- a\nSAY: b')).toEqual({ spoken: 'b', shown: '- a' });
+  it('reads the JSON even with words around it', () => {
+    expect(
+      parseAnswer('Sure! {"title": "News.", "say": "b", "show": {"component": "card"}} Done.'),
+    ).toEqual({
+      title: 'News',
+      spoken: 'b',
+      show: { component: 'card' },
+    });
   });
 });

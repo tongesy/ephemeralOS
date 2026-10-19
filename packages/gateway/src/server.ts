@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path';
 import { WebSocketServer, type WebSocket } from 'ws';
 import {
   ClientMessage,
+  LOGOS_PATH,
   MODELS_PATH,
   PROTOCOL_VERSION,
   TOKEN_HEADER,
@@ -14,6 +15,7 @@ import {
 import { handleApi, serveModel } from './api.ts';
 import type { GatewayConfig } from './config.ts';
 import { allowedHosts, sendJson, tokensMatch } from './http.ts';
+import { createLogoService, serveLogo } from './logos.ts';
 import { serveStatic } from './static.ts';
 import { defaultTools } from './tools/index.ts';
 import type { ToolRegistry } from './tools/registry.ts';
@@ -49,6 +51,7 @@ export async function startGateway(config: GatewayOptions): Promise<Gateway> {
   const webRoot = config.webRoot ? resolve(config.webRoot) : null;
   const tools = config.tools ?? defaultTools({ homeDir: config.homeDir, fetch: config.fetch });
   const api = { homeDir: config.homeDir, tools, fetch: config.fetch };
+  const logos = createLogoService({ homeDir: config.homeDir, fetch: config.fetch });
 
   const port = (): number => (server.address() as AddressInfo).port;
   const origins = (): Set<string> =>
@@ -85,6 +88,10 @@ export async function startGateway(config: GatewayOptions): Promise<Gateway> {
     }
     if (req.method === 'GET' && path.startsWith(MODELS_PATH)) {
       void serveModel(config.homeDir, path, res);
+      return;
+    }
+    if (req.method === 'GET' && path.startsWith(LOGOS_PATH)) {
+      void serveLogo(logos, req, path, res);
       return;
     }
     if (webRoot && (req.method === 'GET' || req.method === 'HEAD')) {

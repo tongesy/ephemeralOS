@@ -26,7 +26,8 @@ const CSP = [
   "media-src 'self' blob: mediastream:",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self'",
-  "img-src 'self' data: blob:",
+  // https images only for logos and photos in displays (loaded with no referrer).
+  "img-src 'self' data: blob: https:",
   "connect-src 'self' https://api.openai.com",
   "object-src 'none'",
   "base-uri 'none'",

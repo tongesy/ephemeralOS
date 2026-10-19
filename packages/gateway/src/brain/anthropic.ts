@@ -52,7 +52,7 @@ export function anthropicBrain(options: {
           },
           body: JSON.stringify({
             model: options.model,
-            max_tokens: 1024,
+            max_tokens: 2048,
             system: request.instructions,
             messages,
             tools: [tool],

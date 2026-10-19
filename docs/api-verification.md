@@ -62,6 +62,17 @@ long turn can stop with `pause_turn`; send the assistant content back unchanged 
 
 Sources: [OpenAI web search guide](https://developers.openai.com/api/docs/guides/tools-web-search), [gpt-6-luna](https://developers.openai.com/docs/models/gpt-6-luna), [Pricing](https://developers.openai.com/api/docs/pricing).
 
+## Logos (search layouts, M4)
+
+| Topic     | Finding                                                                                                                                                                         |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| logo.dev  | `GET https://img.logo.dev/<domain>?token=pk_…&size=128&format=png&fallback=404`. The publishable key goes in `token`; `fallback=404` returns 404 instead of a monogram. No SVG. |
+| Keyless   | Google `https://www.google.com/s2/favicons?domain=<domain>&sz=128`, then DuckDuckGo `https://icons.duckduckgo.com/ip3/<domain>.ico` (unofficial; 404 with a grey placeholder).  |
+| Checking  | Neither service is trusted for content type: the gateway reads the bytes' signature (PNG, JPEG, GIF, WebP, ICO), caps size at 256 KB and drops tiny placeholders.               |
+| Unchecked | Not reachable from the build sandbox; tested with stand-ins only. Re-check against the live services.                                                                           |
+
+Sources: [logo.dev images](https://www.logo.dev/docs/logo-images/get), [logo.dev CDN](https://logo.dev/docs/logo-images/introduction), [DuckDuckGo favicon notes](https://www.logo.dev/docs/duckduckgo-favicon-api).
+
 ## Wake word (local, M2)
 
 | Topic          | Finding                                                                                                                                                                       |
