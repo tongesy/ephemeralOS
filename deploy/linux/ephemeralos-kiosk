@@ -16,9 +16,14 @@ fi
 mkdir -p "$STATE"
 cd "$REPO" || exit 1
 
-# Node may come from mise, whose shims aren't on the PATH of the desktop's autostart.
+# The install script keeps its own Node next to the app. Otherwise Node may come from mise,
+# whose shims aren't on the PATH of the desktop's autostart.
 NODE=(node)
-command -v mise >/dev/null && NODE=(mise exec -- node)
+if [[ -x "$REPO/../node/bin/node" ]]; then
+  NODE=("$REPO/../node/bin/node")
+elif command -v mise >/dev/null; then
+  NODE=(mise exec -- node)
+fi
 
 gateway=
 browser=
