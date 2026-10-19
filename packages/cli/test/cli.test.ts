@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { parseEnv } from '@ephemeralos/gateway';
 import { formatEnv } from '../src/env-file.ts';
-import { KEYS, verifyKey } from '../src/keys.ts';
+import { KEYS, cleanKey, verifyKey } from '../src/keys.ts';
 import { downloadModels, modelFiles } from '../src/models.ts';
 import { TEMPLATES_DIR, resolveHome } from '../src/paths.ts';
 import { copyTemplates } from '../src/templates.ts';
@@ -46,15 +46,37 @@ describe('downloadModels', () => {
 });
 
 describe('verifyKey', () => {
-  it('tells a rejected key from an unreachable provider', async () => {
-    const spec = KEYS[0]!;
-    const status = (s: number) => vi.fn(async () => new Response('', { status: s }));
-    expect(await verifyKey(spec, 'k', status(200) as unknown as typeof fetch)).toBe('ok');
-    expect(await verifyKey(spec, 'k', status(401) as unknown as typeof fetch)).toBe('rejected');
+  const spec = KEYS[0]!;
+  const respond = (status: number, body = '') =>
+    vi.fn(async () => new Response(body, { status })) as unknown as typeof fetch;
+
+  it('checks an OpenAI key by minting a Realtime secret, which restricted keys can do', async () => {
+    const fetchMock = respond(200, '{"value":"ek_x"}');
+    expect(await verifyKey(spec, 'k', fetchMock)).toEqual({ result: 'ok' });
+    const [url, init] = (fetchMock as unknown as ReturnType<typeof vi.fn>).mock.calls[0]!;
+    expect(url).toBe('https://api.openai.com/v1/realtime/client_secrets');
+    expect((init as RequestInit).method).toBe('POST');
+  });
+
+  it('tells a wrong key from a key missing a permission, and from no answer', async () => {
+    const wrong = respond(401, '{"error":{"message":"Incorrect API key provided: sk-…abcd"}}');
+    expect(await verifyKey(spec, 'k', wrong)).toEqual({
+      result: 'rejected',
+      detail: 'Incorrect API key provided: sk-…abcd',
+    });
+    expect((await verifyKey(spec, 'k', respond(403))).result).toBe('forbidden');
+    expect((await verifyKey(spec, 'k', respond(429))).result).toBe('unreachable');
     const down = vi.fn(async () => {
       throw new Error('offline');
-    });
-    expect(await verifyKey(spec, 'k', down as unknown as typeof fetch)).toBe('unreachable');
+    }) as unknown as typeof fetch;
+    expect((await verifyKey(spec, 'k', down)).result).toBe('unreachable');
+  });
+});
+
+describe('cleanKey', () => {
+  it('strips paste markers, spaces and newlines', () => {
+    expect(cleanKey('\x1b[200~sk-proj-abc123\x1b[201~\n')).toBe('sk-proj-abc123');
+    expect(cleanKey('  sk-ant-xyz ')).toBe('sk-ant-xyz');
   });
 });
 

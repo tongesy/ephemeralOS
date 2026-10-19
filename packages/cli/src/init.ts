@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { Config } from '@ephemeralos/shared';
 import { parseEnv } from '@ephemeralos/gateway';
 import { formatEnv } from './env-file.ts';
-import { KEYS, verifyKey } from './keys.ts';
+import { KEYS, cleanKey, verifyKey } from './keys.ts';
 import { MODELS_LICENCE, downloadModels } from './models.ts';
 import { TEMPLATES_DIR } from './paths.ts';
 import { ask, askSecret, confirm } from './prompt.ts';
@@ -55,7 +55,9 @@ export async function init(options: { homeDir: string; models: boolean }): Promi
       continue;
     }
     for (;;) {
-      const key = await askSecret(`  Paste key${spec.required ? '' : ' (Enter to skip)'}: `);
+      const key = cleanKey(
+        await askSecret(`  Paste key${spec.required ? '' : ' (Enter to skip)'}: `),
+      );
       if (!key) {
         if (spec.required) {
           console.log(dim('  Voice needs this key. You can add it later by running init again.'));
@@ -63,15 +65,20 @@ export async function init(options: { homeDir: string; models: boolean }): Promi
         break;
       }
       const verdict = await verifyKey(spec, key);
-      if (verdict === 'rejected') {
-        console.log(`  ${spec.label} rejected that key. Try again, or press Enter to skip.`);
+      if (verdict.result === 'rejected') {
+        console.log(`  ${spec.label} rejected that key: ${verdict.detail}`);
+        console.log('  Try again, or press Enter to skip.');
         continue;
       }
-      console.log(
-        verdict === 'ok'
-          ? '  ✓ Key works.'
-          : dim(`  Couldn't reach ${spec.label} to check it; saved anyway.`),
-      );
+      if (verdict.result === 'ok') console.log('  ✓ Key works.');
+      else if (verdict.result === 'forbidden') {
+        console.log(`  ${spec.label} knows this key, but it lacks a permission: ${verdict.detail}`);
+        console.log(dim(`  Saved anyway. Adjust the key's permissions at ${spec.where}.`));
+      } else {
+        console.log(
+          dim(`  Couldn't check it with ${spec.label} (${verdict.detail}); saved anyway.`),
+        );
+      }
       values[spec.env] = key;
       break;
     }
