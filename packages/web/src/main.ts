@@ -118,8 +118,16 @@ function labelOrb(state: OrbState): void {
 
 function placeOrbLabel(): void {
   const { x, y, radius } = orb.anchor;
-  // Just clear of the orb (and the moons that circle it when thinking).
-  orbLabel.style.transform = `translate(${x}px, ${y + radius * 1.5 + 18}px)`;
+  // Just clear of the orb (and the moons that circle it when thinking): below it, or to its
+  // left when it is tucked into a bottom corner with no room beneath.
+  const clear = radius * 1.5 + 10;
+  const below = y + clear + 8;
+  if (below + 24 < window.innerHeight) {
+    orbLabel.style.transform = `translate(${x}px, ${below}px)`;
+  } else {
+    const left = x - clear - 8 - orbLabel.offsetWidth / 2;
+    orbLabel.style.transform = `translate(${left}px, ${y - orbLabel.offsetHeight / 2}px)`;
+  }
 }
 
 function showHint(text: string | null): void {

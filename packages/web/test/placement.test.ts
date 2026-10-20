@@ -20,8 +20,19 @@ describe('placement', () => {
     const card: Rect = { x: 400, y: 200, width: 800, height: 600 };
     const p = openSpacePlacement(W, H, [card]);
     expect(p.x).toBeGreaterThan(W * 0.85);
-    expect(p.y).toBeGreaterThan(H * 0.85);
+    expect(p.y).toBeGreaterThan(H * 0.8);
     expect(p.radius).toBeLessThan(restingPlacement(W, H).radius);
+    // Well in from the edges, so its glow and its word below it have room.
+    expect(H - p.y).toBeGreaterThanOrEqual(H * 0.06 + p.radius * 2.5);
+  });
+
+  it('keeps its corner when a gallery runs nearly to the edges', () => {
+    // The gallery's own padding (6vw, 8vh) is all the room there is.
+    const mosaic: Rect = { x: 96, y: 160, width: W - 192, height: H - 240 };
+    const p = openSpacePlacement(W, H, [mosaic]);
+    expect(p.x).toBeGreaterThan(W - 96);
+    expect(p.y).toBeGreaterThan(H - 120);
+    expect(Math.hypot(p.x - (W - 96), p.y - (H - 80))).toBeGreaterThan(p.radius);
   });
 
   it('takes the next clear corner when content sits in the bottom right', () => {

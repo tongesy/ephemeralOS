@@ -131,7 +131,8 @@
    load, the same page holds the title and a quiet note instead. */
 .surface--gallery:has(.editorial__mosaic),
 .surface--gallery:has(.editorial__empty) {
-  padding: 8vh 6vw;
+  /* A deeper margin below, so the orb has its corner without sitting on a picture. */
+  padding: 8vh 6vw 15vh;
   color: var(--eos-ink);
 }
 
