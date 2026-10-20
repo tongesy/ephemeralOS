@@ -127,7 +127,11 @@ export class AudioLevels {
 
   /** Measure what is playing (a podcast), or stop (`null`). The orb moves to it gently. */
   attachMedia(node: AudioNode | null): void {
-    if (this.mediaSource && this.media) this.mediaSource.disconnect(this.media.analyser);
+    try {
+      if (this.mediaSource && this.media) this.mediaSource.disconnect(this.media.analyser);
+    } catch {
+      // Already disconnected along with everything else; nothing left to undo.
+    }
     this.mediaSource = node;
     this.media = node ? new Channel(this.context, 40, 260) : null;
     if (node && this.media) node.connect(this.media.analyser);

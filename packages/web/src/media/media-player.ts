@@ -393,9 +393,10 @@ export class MediaPlayer {
       this.audio.load();
       this.audio = null;
     }
+    // Unhook the orb's ear first: it disconnects its own link, which must still be there.
+    this.host.measure(null);
     this.source?.disconnect();
     this.source = null;
-    this.host.measure(null);
     // Silence the video now; its frame goes with the surface once it has faded.
     if (this.frame) this.command('pauseVideo');
     this.frame = null;
