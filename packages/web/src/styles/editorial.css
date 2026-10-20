@@ -127,13 +127,16 @@
   font-size: clamp(1.75rem, 3vw, 2.75rem);
 }
 
-/* Gallery: a mosaic on the page, the first picture largest. */
-.surface--gallery:has(.editorial__mosaic) {
+/* Gallery: a mosaic on the page, the first picture largest. When none of its pictures
+   load, the same page holds the title and a quiet note instead. */
+.surface--gallery:has(.editorial__mosaic),
+.surface--gallery:has(.editorial__empty) {
   padding: 8vh 6vw;
   color: var(--eos-ink);
 }
 
-.surface--gallery:has(.editorial__mosaic) .editorial__title {
+.surface--gallery:has(.editorial__mosaic) .editorial__title,
+.surface--gallery:has(.editorial__empty) .editorial__title {
   margin-bottom: var(--size-5);
   font-size: clamp(1.75rem, 3.2vw, 3rem);
 }
