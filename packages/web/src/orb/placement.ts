@@ -34,9 +34,21 @@ function distanceToRect(px: number, py: number, r: Rect): number {
 }
 
 /**
- * Find the most open spot on screen for the orb while `occupied` rects hold content:
- * the point farthest from every rect and screen edge. Ties go to the point nearest the
- * centre, so the orb never wanders further than it needs to.
+ * Where the orb waits while content is up: the bottom-right corner, where people expect an
+ * assistant to sit, then the other corners if content is there.
+ */
+const CORNERS: ReadonlyArray<readonly [right: boolean, bottom: boolean]> = [
+  [true, true],
+  [true, false],
+  [false, true],
+  [false, false],
+];
+
+/**
+ * Where the orb goes while `occupied` rects hold content: out of the way in the first clear
+ * corner (bottom right unless something is there). When every corner is taken, the most open
+ * spot left: the point farthest from every rect and screen edge, ties going to the point
+ * nearest the centre so the orb never wanders further than it needs to.
  */
 export function openSpacePlacement(width: number, height: number, occupied: Rect[]): Placement {
   if (occupied.length === 0) return restingPlacement(width, height);
@@ -44,6 +56,13 @@ export function openSpacePlacement(width: number, height: number, occupied: Rect
   const short = Math.min(width, height);
   const radius = short * SHARING_SIZE;
   const margin = short * GAP + radius;
+
+  for (const [right, bottom] of CORNERS) {
+    const x = right ? width - margin : margin;
+    const y = bottom ? height - margin : margin;
+    const clear = occupied.every((rect) => distanceToRect(x, y, rect) >= radius + short * GAP);
+    if (clear) return { x, y, radius };
+  }
   let best = { x: width / 2, y: height / 2, clearance: -Infinity, centre: Infinity };
 
   for (let i = 0; i < GRID; i++) {
