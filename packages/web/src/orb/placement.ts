@@ -19,6 +19,13 @@ export const RESTING_SIZE = 0.0425;
 export const SHARING_SIZE = 0.03;
 /** Breathing room between the orb, content and the screen edge (fraction of shorter side). */
 const GAP = 0.06;
+/** A cornered orb's gap to the screen edges (beyond its glow), the closer gap it takes when
+    content leaves no more, the least room it keeps from content, and the smallest it will
+    shrink to there (fractions of the shorter side). */
+const CORNER_INSET = 0.06;
+const TIGHT_INSET = 0.045;
+const CORNER_ROOM = 0.012;
+const CORNER_MIN = 0.018;
 /** Candidate positions per axis when searching for open space. */
 const GRID = 15;
 
@@ -57,11 +64,23 @@ export function openSpacePlacement(width: number, height: number, occupied: Rect
   const radius = short * SHARING_SIZE;
   const margin = short * GAP + radius;
 
+  // In a corner the orb sits well in from the edges, glow and word clear of them. Where a
+  // gallery runs nearly to the edges it tucks in closer and shrinks a little rather than
+  // give up its corner.
   for (const [right, bottom] of CORNERS) {
-    const x = right ? width - margin : margin;
-    const y = bottom ? height - margin : margin;
-    const clear = occupied.every((rect) => distanceToRect(x, y, rect) >= radius + short * GAP);
-    if (clear) return { x, y, radius };
+    for (const [inset, minimum] of [
+      [(r: number) => short * CORNER_INSET + r * 2.5, radius],
+      [(r: number) => short * TIGHT_INSET + r, short * CORNER_MIN],
+    ] as const) {
+      for (let r = radius; r >= minimum; r -= short * 0.002) {
+        const x = right ? width - inset(r) : inset(r);
+        const y = bottom ? height - inset(r) : inset(r);
+        const room = short * CORNER_ROOM;
+        if (occupied.every((rect) => distanceToRect(x, y, rect) >= r + room)) {
+          return { x, y, radius: r };
+        }
+      }
+    }
   }
   let best = { x: width / 2, y: height / 2, clearance: -Infinity, centre: Infinity };
 

@@ -74,7 +74,9 @@ then drops back to live at your first pause. A falling chime marks going back to
 The orb is small (a radius of 4.25% of the shorter screen side) and centred, so the page reads as clean
 and open. When content appears it fades into existence (opacity, a slight lift and a soft
 focus pull; [`surface.css`](../packages/web/src/styles/surface.css)), and the orb glides into
-the bottom-right corner at a smaller size, out of the way of what you're looking at; if
+the bottom-right corner at a smaller size, out of the way of what you're looking at, tucked
+close to the edges and a little smaller still if a gallery runs nearly to them (its word sits
+beside it there); if
 something sits there it takes the next clear corner, and only when every corner is taken
 the most open space left ([`placement.ts`](../packages/web/src/orb/placement.ts)). When the content fades out, the orb
 drifts back to the centre.
