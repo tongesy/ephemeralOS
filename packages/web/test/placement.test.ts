@@ -16,11 +16,18 @@ describe('placement', () => {
     expect(openSpacePlacement(W, H, [])).toEqual(restingPlacement(W, H));
   });
 
-  it('moves into the open side when content fills the left', () => {
-    const card: Rect = { x: 100, y: 200, width: 600, height: 600 };
+  it('waits in the bottom-right corner while content is up', () => {
+    const card: Rect = { x: 400, y: 200, width: 800, height: 600 };
     const p = openSpacePlacement(W, H, [card]);
-    expect(p.x).toBeGreaterThan(card.x + card.width + p.radius);
+    expect(p.x).toBeGreaterThan(W * 0.85);
+    expect(p.y).toBeGreaterThan(H * 0.85);
     expect(p.radius).toBeLessThan(restingPlacement(W, H).radius);
+  });
+
+  it('takes the next clear corner when content sits in the bottom right', () => {
+    const p = openSpacePlacement(W, H, [{ x: 1000, y: 500, width: 600, height: 500 }]);
+    expect(p.x).toBeGreaterThan(W * 0.85);
+    expect(p.y).toBeLessThan(H * 0.15);
   });
 
   it('never overlaps content', () => {
