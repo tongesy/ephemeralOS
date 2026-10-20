@@ -5,7 +5,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { logoDomain } from '@ephemeralos/shared';
 import { sniffImage } from '../src/images/image-cache.ts';
 import { createLogoService, logoSources } from '../src/images/logos.ts';
-import { createPhotoService, openverseSources, photoSources } from '../src/images/photos.ts';
+import {
+  createPhotoService,
+  openverseSources,
+  pageImageSources,
+  photoSources,
+} from '../src/images/photos.ts';
 import { startGateway, type Gateway } from '../src/server.ts';
 
 /** A PNG signature padded past the placeholder threshold. */
@@ -118,6 +123,9 @@ describe('photos', () => {
     expect(photoSources({ type: 'disambiguation', thumbnail: { source: thumb } })).toEqual([]);
     expect(photoSources({ thumbnail: { source: 'https://evil.example/x.jpg' } })).toEqual([]);
     expect(photoSources({ title: 'No image' })).toEqual([]);
+    // A thumbnail in a shape we can't resize is still used as it is.
+    const odd = 'https://upload.wikimedia.org/wikipedia/commons/a/a1/Haaland.jpg?width=640';
+    expect(photoSources({ thumbnail: { source: odd } })).toEqual([odd]);
   });
 
   it('looks the title up on Wikipedia, says who is asking, and checks the image', async () => {
@@ -136,6 +144,52 @@ describe('photos', () => {
     expect(init.headers).toMatchObject({ 'User-Agent': expect.stringContaining('ephemeralOS') });
     expect(await photos.get('../etc/passwd')).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('pageimages, when the summary has no photo', () => {
+  const thumb =
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Venice.jpg/1280px-Venice.jpg';
+
+  it('reads the lead image from the action API', () => {
+    expect(
+      pageImageSources({
+        query: {
+          pages: [
+            {
+              title: 'Venice',
+              thumbnail: { source: thumb, width: 1280 },
+              original: { source: thumb.replace(/thumb\/|\/1280px-Venice.jpg/g, ''), width: 4000 },
+            },
+          ],
+        },
+      }).slice(0, 2),
+    ).toEqual([thumb, thumb.replace('1280px', '960px')]);
+    expect(pageImageSources({ query: { pages: [{ missing: true }] } })).toEqual([]);
+    expect(pageImageSources({ error: 'nope' })).toEqual([]);
+  });
+
+  it('says in the log why a lookup came back empty', async () => {
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+    const fetchMock = vi.fn(async (url: string | URL) => {
+      const u = String(url);
+      if (u.includes('/page/summary/')) return new Response('<html>blocked</html>');
+      if (u.includes('/w/api.php?')) return new Response('slow down', { status: 429 });
+      throw new TypeError('fetch failed', { cause: new Error('getaddrinfo ENOTFOUND') });
+    });
+    const photos = createPhotoService({
+      homeDir: await home(),
+      fetch: fetchMock as unknown as typeof fetch,
+    });
+    expect(await photos.get('Venice')).toBeNull();
+    const lines = info.mock.calls.map(([line]) => String(line));
+    expect(lines).toContain(
+      `[photos] Wikipedia summary sent something that isn't JSON for "Venice": <html>blocked</html>`,
+    );
+    expect(lines).toContain(`[photos] Wikipedia pageimages answered 429 for "Venice": slow down`);
+    expect(lines).toContain(
+      `[photos] Openverse failed for "Venice": TypeError: fetch failed (getaddrinfo ENOTFOUND)`,
+    );
   });
 });
 
@@ -163,6 +217,7 @@ describe('Openverse, when Wikipedia has no photo', () => {
     const fetchMock = vi.fn(async (url: string | URL) => {
       const u = String(url);
       if (u.includes('/page/summary/')) return Response.json({ type: 'standard' });
+      if (u.includes('/w/api.php?')) return Response.json({ query: { pages: [{ title: 'x' }] } });
       if (u.startsWith('https://api.openverse.org/v1/images/?')) {
         return Response.json({ results: [{ id, width: 1600, height: 1000 }] });
       }
@@ -175,8 +230,9 @@ describe('Openverse, when Wikipedia has no photo', () => {
     });
     expect((await photos.get('Amalfi Coast'))?.type).toBe('image/jpeg');
     const asked = fetchMock.mock.calls.map(([u]) => String(u));
-    expect(asked[1]).toContain('q=Amalfi+Coast');
-    expect(asked[2]).toContain(`${id}/thumb/?full_size=true`);
+    expect(asked[1]).toContain('prop=pageimages');
+    expect(asked[2]).toContain('q=Amalfi+Coast');
+    expect(asked[3]).toContain(`${id}/thumb/?full_size=true`);
   });
 });
 
